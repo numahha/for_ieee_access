@@ -51,6 +51,7 @@ class baseVI:
         # self.train_g_m_list=None
         # self.valid_g_m_list=None
         self.initial_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
+        self.temp_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
 
 
 
@@ -98,8 +99,9 @@ class baseVI:
         else:
             self.sim_z = z.flatten()
         self.sim_s = self.init_state_fn(fix_init=fix_init).flatten()
-        # self.online_data = torch.empty((0,self.sas_dim+1))
+        self.online_data = torch.empty((0,self.sas_dim+1))
         self.sim_b = self.get_belief(sads_array=None).detach().numpy().flatten()
+        self.temp_belief = copy.deepcopy(self.initial_belief)
         sb =np.hstack([self.sim_s, self.sim_b])
         return sb
 
@@ -127,9 +129,8 @@ class baseVI:
         #     with torch.no_grad():
         #         penalty = self.penalty_model(torch.hstack([saz, self.train_g_m_list[self.sim_m]]))
         #     rew -= self.lam * penalty.flatten()[0]
-
-        # current_data = torch.hstack([self.sim_s, a, self.sim_s+ds, torch.Tensor([rew])])
-        # self.online_data = torch.vstack([self.online_data, current_data])
+        current_data = torch_from_numpy(np.hstack([self.sim_s, a, ds, rew]))
+        self.online_data = torch.vstack([self.online_data, current_data])
         # if update_belief:
         #     self.sim_b = self.get_belief(self.online_data[:, :(self.sas_dim)]).detach().flatten()
 
@@ -212,8 +213,7 @@ class baseVI:
     def get_belief(self, sads_array=None):
         with torch.no_grad():
             if sads_array is None or len(sads_array)==0:
-                # return self.initial_belief.detach()
-                return self.prior
+                return 1. * self.initial_belief.detach()
             else:
                 return self.enc(sads_array[:, :(self.sas_dim)])
 
@@ -343,34 +343,6 @@ class baseVI:
 
 
 
-#     def train_initial_belief(self, num_iter, lr, early_stop_step):
-
-#         best_loss = 1e10
-#         for m in range(100):
-#             temp_initial_belief = torch.nn.Parameter(self.mulogvar_list_for_mixture_of_gaussian_belief[m], requires_grad=True)
-#             optimizer = torch.optim.Adam([temp_initial_belief], lr=lr)
-#             temp_best_iter=0
-#             temp_best_loss = 1e10
-#             for i in range(num_iter):
-#                 optimizer.zero_grad()
-#                 loss = kdl_var_approx(temp_initial_belief,
-#                                       self.mulogvar_list_for_mixture_of_gaussian_belief)
-#                 loss.backward()
-#                 optimizer.step()
-
-#                 if temp_best_loss>loss.item():
-#                     temp_best_iter = i
-#                     temp_best_loss = loss.item()
-#                     temp_best_initial_belief = copy.deepcopy(temp_initial_belief)
-
-#                 if (i-temp_best_iter)>early_stop_step:
-#                     break
-#             if best_loss>temp_best_loss:
-#                 best_loss = temp_best_loss
-#                 self.initial_belief = copy.deepcopy(temp_best_initial_belief)
-#             print("m",m, "iter",i, "best_loss", best_loss, "temp_best_loss", temp_best_loss, "\nself.initial_belief",self.initial_belief, "\ntemp_best_initial_belief",temp_best_initial_belief)
-#         print("self.initial_belief",self.initial_belief)
-
     def _loss_train_initial_belief(self, m, flag=False):
         tmp_z= self.sample_z(self.mulogvar_list_for_mixture_of_gaussian_belief[m], 1)
         return - log_gaussian(tmp_z, # y
@@ -384,3 +356,10 @@ class baseVI:
         loss_fn = self._loss_train_initial_belief
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)     
         return ret
+
+#     def train_initial_belief(self, sads):
+        
+#         param_list = [self.initial_belief]
+#         loss_fn = self._loss_train_initial_belief
+#         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)     
+#         return ret
