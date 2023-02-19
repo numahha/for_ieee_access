@@ -55,6 +55,11 @@ def kdl_var_approx(mulogvar_1, mulogvarlist_2):
     return np.log(len(mulogvarlist_2))-logsumexp_minus_kld_fa_gb
 
 
+# def saz_array_to_sads_array(saz_array):
+#     ds = saz_array[1:,:self.s_dim] - saz_array[:-1,:self.s_dim]
+#     return np.hstack([saz_array[:-1,:self.s_dim+self.a_dim], ds])
+
+
 # for sac
 def create_log_gaussian(mean, log_std, t):
     quadratic = -((0.5 * (t - mean) / (log_std.exp())).pow(2))

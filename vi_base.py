@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import random
 import copy
+import time
 
 from utils import log_gaussian, kld, kdl_var_approx, torch_from_numpy
 from model_bamdp import Encoder, Decoder#, PenaltyModel
@@ -107,7 +108,7 @@ class baseVI:
 
 
 
-    def step(self, a, update_belief=True, penalty_flag=False):
+    def step(self, a, update_belief=False, penalty_flag=False):
         a= a.flatten()
         saz = np.hstack([self.sim_s, a, self.sim_z]).reshape(1,-1)
         ds_mulogvar = self.dec.my_np_forward(saz).flatten()
@@ -131,14 +132,13 @@ class baseVI:
         #     rew -= self.lam * penalty.flatten()[0]
         current_data = torch_from_numpy(np.hstack([self.sim_s, a, ds, rew]))
         self.online_data = torch.vstack([self.online_data, current_data])
-        # if update_belief:
-        #     self.sim_b = self.get_belief(self.online_data[:, :(self.sas_dim)]).detach().flatten()
-
+        if update_belief:
+            self.sim_b = self.get_belief(self.online_data[:, :(self.sas_dim)]).detach().flatten()
         sb = np.hstack([self.sim_s, self.sim_b])
         return sb, rew, done, {}
 
 
-    def rollout_episode_simenv(self, z_mulogvar, len_data, random_stop=True, zmean=False):
+    def rollout_episode_simenv(self, z_mulogvar, len_data, random_stop=True, zmean=False, update_belief=False):
 
         stateaction_history=[]
         while True:
@@ -153,7 +153,7 @@ class baseVI:
                     break
                 action = self.policy(state, evaluate=self.policy_evaluate)
                 stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
-                next_sb, reward, done, _ = self.step(action)
+                next_sb, reward, done, _ = self.step(action,update_belief=update_belief)
                 state = next_sb[:self.s_dim]
                 if random_stop:
                     if np.random.rand()>self.gamma:
@@ -168,13 +168,13 @@ class baseVI:
         return stateaction_history[:len_data]
 
 
-    def get_sim_rollout_data_fixlen(self):
+    def get_sim_rollout_data_fixlen(self, update_belief=False):
         self.dec.my_np_compile()
         self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=False, zmean=True)
+            self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=False, zmean=True, update_belief=update_belief)
         print(" ")
 
 
@@ -184,7 +184,7 @@ class baseVI:
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=True, zmean=False)
+            self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=True, zmean=False, update_belief=False)
         print(" ")
 
 
@@ -211,11 +211,37 @@ class baseVI:
 
 
     def get_belief(self, sads_array=None):
-        with torch.no_grad():
-            if sads_array is None or len(sads_array)==0:
-                return 1. * self.initial_belief.detach()
-            else:
-                return self.enc(sads_array[:, :(self.sas_dim)])
+        if sads_array is None or len(sads_array)==0:
+            return 1. * self.initial_belief.detach()
+        else:
+            optimizer = torch.optim.Adam([self.temp_belief], lr=5e-4)
+            best_loss=1e10
+            best_iter = 0
+            sads_array = torch_from_numpy(sads_array)
+            start_time = time.time()
+            for i in range(1000):
+                optimizer.zero_grad()
+                z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
+                saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+                ds_mulogvar = self.dec(saz)
+                ds = sads_array[:, (self.sa_dim):(self.sa_dim)+1]
+                loss = - log_gaussian(ds, # y
+                           ds_mulogvar[:, :self.s_dim], # mu
+                           ds_mulogvar[:, self.s_dim:] # logvar
+                           ).sum() 
+                loss +=  kld(self.temp_belief[:self.z_dim],
+                             self.temp_belief[self.z_dim:],
+                             self.initial_belief.detach()[:self.z_dim],
+                             self.initial_belief.detach()[self.z_dim:])
+                loss.backward()
+                optimizer.step()
+                if loss.item()<best_loss:
+                    best_loss = loss.item()
+                    best_iter = i
+                if (i-best_iter)>10:
+                    break
+            print("get_belief",i,"compute_time",time.time()-start_time)
+            return 1*self.temp_belief.detach()
 
 
     def train_unweighted_vae(self, num_iter, lr, early_stop_step, flag=1):
