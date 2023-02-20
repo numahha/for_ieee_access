@@ -137,36 +137,41 @@ class baseVI:
         sb = np.hstack([self.sim_s, self.sim_b])
         return sb, rew, done, {}
 
+    
+    def rollout_oneepisode_realenv(self, temp_c):
+        state = self.debug_realenv.reset(fix_init=True)
+        done = False
+        state_history = []
+        self.debug_realenv.env.env.set_params(c=temp_c)
+        while not done:
+            state_history.append(state)
+            with torch.no_grad():
+                action = self.policy(state, evaluate=self.policy_evaluate)  # Sample action from policy
+            next_state, reward, done, _ = self.debug_realenv.step(action) # Step
+            state = 1 * next_state
+        return np.array(state_history)
 
-    def rollout_episode_simenv(self, z_mulogvar, len_data, random_stop=True, zmean=False, update_belief=False):
-
-        stateaction_history=[]
+    
+    def rollout_oneepisode_simenv(self, z=None, random_stop=True, update_belief=False):
+        sb = self.reset(fix_init=True, z=z)
+        state = sb[:self.s_dim]
+        done = False
+        stateaction_history = []
         while True:
-            if zmean:
-                z = z_mulogvar.numpy().flatten()[:1]
-            else:
-                z = self.sample_z(z_mulogvar, 1).numpy().flatten()
-            sb = self.reset(fix_init=True, z=z)
-            state = sb[:self.s_dim]
-            while True:
-                if np.abs(state).max()>1e3:
-                    break
-                action = self.policy(state, evaluate=self.policy_evaluate)
-                stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
-                next_sb, reward, done, _ = self.step(action,update_belief=update_belief)
-                state = next_sb[:self.s_dim]
-                if random_stop:
-                    if np.random.rand()>self.gamma:
-                        break
-                else:
-                    if done:
-                        return np.array(stateaction_history)
-            if len(stateaction_history)>(5*len_data):
+            if np.abs(state).max()>1e3:
                 break
-        stateaction_history = np.array(stateaction_history)
-        np.random.shuffle(stateaction_history)
-        return stateaction_history[:len_data]
-
+            with torch.no_grad():
+                action = self.policy(state, evaluate=self.policy_evaluate)
+            stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
+            next_sb, reward, done, _ = self.step(action, update_belief=update_belief)
+            state = next_sb[:self.s_dim]
+            if random_stop:
+                if np.random.rand()>self.gamma:
+                    break
+            else:
+                if done:
+                    break
+        return np.array(stateaction_history)
 
     def get_sim_rollout_data_fixlen(self, update_belief=False):
         self.dec.my_np_compile()
@@ -174,38 +179,78 @@ class baseVI:
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=False, zmean=True, update_belief=update_belief)
+            z = 1. * self.mulogvar_list_for_mixture_of_gaussian_belief[m][:self.z_dim]
+            # print("debug print",m,z)
+            self.simenv_rolloutdata[m] = self.rollout_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
         print(" ")
+    
+    
+
+#     def rollout_episode_simenv(self, z_mulogvar, len_data, random_stop=True, zmean=False, update_belief=False):
+
+#         stateaction_history=[]
+#         while True:
+#             if zmean:
+#                 z = z_mulogvar.numpy().flatten()[:1]
+#             else:
+#                 z = self.sample_z(z_mulogvar, 1).numpy().flatten()
+#             sb = self.reset(fix_init=True, z=z)
+#             state = sb[:self.s_dim]
+#             while True:
+#                 if np.abs(state).max()>1e3:
+#                     break
+#                 action = self.policy(state, evaluate=self.policy_evaluate)
+#                 stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
+#                 next_sb, reward, done, _ = self.step(action,update_belief=update_belief)
+#                 state = next_sb[:self.s_dim]
+#                 if random_stop:
+#                     if np.random.rand()>self.gamma:
+#                         break
+#                 else:
+#                     if done:
+#                         return np.array(stateaction_history)
+#             if len(stateaction_history)>(5*len_data):
+#                 break
+#         stateaction_history = np.array(stateaction_history)
+#         np.random.shuffle(stateaction_history)
+#         return stateaction_history[:len_data]
 
 
-    def get_sim_rollout_data_randomlen(self):
-        self.dec.my_np_compile()
-        self.policy_evaluate=False
-        self.simenv_rolloutdata = [None]*len(self.offline_data)
-        for m in range(len(self.offline_data)):
-            print(m," ", end="")
-            self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=True, zmean=False, update_belief=False)
-        print(" ")
+    # def rollout_episode_simenv(self, z_mulogvar, len_data, random_stop=True, zmeanflag=False, update_belief=False):
+    #     ret_data=None
+    #     while True:
+    #         if zmeanflag:
+    #             z = z_mulogvar.numpy().flatten()[:1]
+    #         else:
+    #             z = self.sample_z(z_mulogvar, 1).numpy().flatten()
+    #         tmp_stateaction_history = self.rollout_oneepisode_simlenv(z=z, random_stop=random_stop, update_belief=update_belief)
+    #         if ret_data is None:
+    #             ret_data = tmp_stateaction_history
+    #         else:
+    #             ret_data = np.vstack([ret_data, tmp_stateaction_history])
+    #         if len(ret_data)>(5*len_data):
+    #             break
 
+
+
+
+
+    # def get_sim_rollout_data_randomlen(self, update_belief=False):
+    #     self.dec.my_np_compile()
+    #     self.policy_evaluate=False
+    #     self.simenv_rolloutdata = [None]*len(self.offline_data)
+    #     for m in range(len(self.offline_data)):
+    #         print(m," ", end="")
+    #         self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=True, zmean=False, update_belief=False)
+    #     print(" ")
+
+        
 
     def get_real_rollout_data(self):
         self.policy_evaluate= True
-        def rollout_episode_realenv(temp_c):
-            state = self.debug_realenv.reset(fix_init=True)
-            done = False
-            state_history = []
-            self.debug_realenv.env.env.set_params(c=temp_c)
-            while not done:
-                state_history.append(state)
-                with torch.no_grad():
-                    action = self.policy(state, evaluate=self.policy_evaluate)  # Sample action from policy
-                next_state, reward, done, _ = self.debug_realenv.step(action) # Step
-                state = next_state
-            return np.array(state_history)
-
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            self.debug_realenv_rolloutdata[m] = rollout_episode_realenv(self.debug_c_list[m])
+            self.debug_realenv_rolloutdata[m] = self.rollout_oneepisode_realenv(self.debug_c_list[m])
         print(" ")
 
 
@@ -224,7 +269,8 @@ class baseVI:
                 z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
                 saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
                 ds_mulogvar = self.dec(saz)
-                ds = sads_array[:, (self.sa_dim):(self.sa_dim)+1]
+                ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+                print("hishi",ds[0], ds_mulogvar[0])
                 loss = - log_gaussian(ds, # y
                            ds_mulogvar[:, :self.s_dim], # mu
                            ds_mulogvar[:, self.s_dim:] # logvar
@@ -237,8 +283,8 @@ class baseVI:
                 optimizer.step()
                 if loss.item()<best_loss:
                     best_loss = loss.item()
-                    best_iter = i
-                if (i-best_iter)>10:
+                    best_iter = 1*i
+                if (i-best_iter)>100:
                     break
             print("get_belief",i,"compute_time",time.time()-start_time)
             return 1*self.temp_belief.detach()
@@ -372,9 +418,9 @@ class baseVI:
     def _loss_train_initial_belief(self, m, flag=False):
         tmp_z= self.sample_z(self.mulogvar_list_for_mixture_of_gaussian_belief[m], 1)
         return - log_gaussian(tmp_z, # y
-                                  self.initial_belief[:self.z_dim], # mu
-                                  self.initial_belief[self.z_dim:] # logvar
-                                  ).sum()
+                                self.initial_belief[:self.z_dim], # mu
+                                self.initial_belief[self.z_dim:] # logvar
+                                ).sum()
 
     def train_initial_belief(self, num_iter, lr, early_stop_step):
         

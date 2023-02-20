@@ -38,9 +38,9 @@ class Encoder(torch.nn.Module):
     def forward(self, data):
         x = self.net1(data)
         return self.net2(x.sum(0))
-        mu_logvar = self.net2(x.sum(0))
-        logvar = torch.clamp(mu_logvar[self.z_dim:], min=clamp_logvarmin)
-        return torch.hstack([mu_logvar[:self.z_dim], logvar])
+        # mu_logvar = self.net2(x.sum(0))
+        # logvar = torch.clamp(mu_logvar[self.z_dim:], min=clamp_logvarmin)
+        # return torch.hstack([mu_logvar[:self.z_dim], logvar])
 
 
 class Decoder(torch.nn.Module):
