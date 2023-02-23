@@ -216,9 +216,36 @@ class baseVI:
             return 1. * self.initial_belief.detach()
         else:
             sads_array = torch_from_numpy(sads_array)
-            with torch.no_grad():
-                return 1. * self.enc_belief(sads_array).detach()
-            
+#             with torch.no_grad():
+#                 return 1. * self.enc_belief(sads_array).detach()
+            optimizer = torch.optim.Adam([self.temp_belief], lr=5e-4)
+            best_loss=1e10
+            best_iter = 0
+            start_time = time.time()
+            for i in range(1000):
+                optimizer.zero_grad()
+                z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
+                saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+                ds_mulogvar = self.dec(saz)
+                ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+#                 print("hishi",ds[0], ds_mulogvar[0])
+                loss = - log_gaussian(ds, # y
+                           ds_mulogvar[:, :self.s_dim], # mu
+                           ds_mulogvar[:, self.s_dim:] # logvar
+                           ).sum() 
+                loss +=  kld(self.temp_belief[:self.z_dim],
+                             self.temp_belief[self.z_dim:],
+                             self.initial_belief.detach()[:self.z_dim],
+                             self.initial_belief.detach()[self.z_dim:])
+                loss.backward()
+                optimizer.step()
+                if loss.item()<best_loss:
+                    best_loss = loss.item()
+                    best_iter = 1*i
+                if (i-best_iter)>100:
+                    break
+            print("get_belief",i,"compute_time",time.time()-start_time)
+            return 1*self.temp_belief.detach()            
 
     def train_unweighted_vae(self, num_iter, lr, early_stop_step, flag=1):
         if flag==1:
