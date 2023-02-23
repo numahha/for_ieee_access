@@ -147,15 +147,15 @@ class baseVI:
     def rollout_oneepisode_realenv(self, temp_c):
         state = self.debug_realenv.reset(fix_init=True)
         done = False
-        state_history = []
+        stateaction_history = []
         self.debug_realenv.env.env.set_params(c=temp_c)
         while not done:
-            state_history.append(state)
             with torch.no_grad():
                 action = self.policy(state, evaluate=self.policy_evaluate)  # Sample action from policy
+            stateaction_history.append(np.hstack([state.flatten(), action.flatten()]))
             next_state, reward, done, _ = self.debug_realenv.step(action) # Step
             state = 1 * next_state
-        return np.array(state_history)
+        return np.array(stateaction_history)
 
     
     def rollout_oneepisode_simenv(self, z=None, random_stop=True, update_belief=False):
