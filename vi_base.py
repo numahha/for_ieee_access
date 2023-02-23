@@ -209,8 +209,21 @@ class baseVI:
             self.debug_realenv_rolloutdata[m] = self.rollout_oneepisode_realenv(self.debug_c_list[m])
         print(" ")
 
-
-
+        
+#     def loss_for_belief_update(self, sads_torch_array):
+#         z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
+#         saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+#         ds_mulogvar = self.dec(saz)
+#         ds = sads_torch_array[:, (self.sa_dim):(self.sas_dim)]
+#         loss = - log_gaussian(ds, # y
+#                    ds_mulogvar[:, :self.s_dim], # mu
+#                    ds_mulogvar[:, self.s_dim:] # logvar
+#                    ).sum() 
+#         loss +=  kld(self.temp_belief[:self.z_dim],
+#                      self.temp_belief[self.z_dim:],
+#                      self.initial_belief.detach()[:self.z_dim],
+#                      self.initial_belief.detach()[self.z_dim:])
+#         return loss
     def get_belief(self, sads_array=None):
         if sads_array is None or len(sads_array)==0:
             return 1. * self.initial_belief.detach()
@@ -218,7 +231,9 @@ class baseVI:
             sads_array = torch_from_numpy(sads_array)
 #             with torch.no_grad():
 #                 return 1. * self.enc_belief(sads_array).detach()
-            optimizer = torch.optim.Adam([self.temp_belief], lr=5e-4)
+
+            optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
+#             optimizer = torch.optim.SGD([self.temp_belief],lr=0.1,momentum=0.9)
             best_loss=1e10
             best_iter = 0
             start_time = time.time()
@@ -244,7 +259,7 @@ class baseVI:
                     best_iter = 1*i
                 if (i-best_iter)>100:
                     break
-            print("get_belief",i,"compute_time",time.time()-start_time)
+            print("get_belief",i,"compute_time",time.time()-start_time,"best_loss",best_loss,"loss.item()",loss.item())
             return 1*self.temp_belief.detach()            
 
     def train_unweighted_vae(self, num_iter, lr, early_stop_step, flag=1):
