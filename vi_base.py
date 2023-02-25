@@ -44,9 +44,9 @@ class baseVI:
         self.enc = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
         self.dec = Decoder(self.s_dim, self.a_dim, self.z_dim)         # p(ds|s,a,z)
         self.prior = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=False)  # [mean, logvar] for VAE training
-        self.enc_belief = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
+        # self.enc_belief = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
 
-        self.mulogvar_list_for_mixture_of_gaussian_belief=None
+        self.mulogvar_offlinedata=None
 
         # self.lam=1e-4 # ペナルティの係数？
         # self.penalty_model = PenaltyModel(s_dim, a_dim, z_dim) # ibisには要らない
@@ -54,8 +54,6 @@ class baseVI:
         # self.valid_g_m_list=None
         self.initial_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
         self.temp_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
-
-
 
         # only used for debug
         self.debug_realenv = env
@@ -71,20 +69,20 @@ class baseVI:
     def store_encdec(self):
         self.enc_store = copy.deepcopy(self.enc)         # q(z|D^train_m)
         self.dec_store = copy.deepcopy(self.dec)         # p(ds|s,a,z)
-        self.enc_belief_store = copy.deepcopy(self.enc_belief)         # q(z|D^train_m)
+        # self.enc_belief_store = copy.deepcopy(self.enc_belief)         # q(z|D^train_m)
 
 
     def restore_encdec(self):
         self.enc = copy.deepcopy(self.enc_store)         # q(z|D^train_m)
         self.dec = copy.deepcopy(self.dec_store)         # p(ds|s,a,z)
-        self.enc_belief = copy.deepcopy(self.enc_belief_store)         # q(z|D^train_m)
+        # self.enc_belief = copy.deepcopy(self.enc_belief_store)         # q(z|D^train_m)
 
 
     def save(self, ckpt_name="vi_base_ckpt"):
         torch.save({'enc_state_dict': self.enc.state_dict(),
                     'dec_state_dict': self.dec.state_dict(),
-                    'prior': self.prior,
-                    'enc_belief_state_dict': self.enc_belief.state_dict()
+                    'prior': self.prior
+                    # 'enc_belief_state_dict': self.enc_belief.state_dict()
                    },ckpt_name)
 
     def load(self, ckpt_name="vi_base_ckpt"):
@@ -92,8 +90,8 @@ class baseVI:
         self.enc.load_state_dict(checkpoint['enc_state_dict'])
         self.dec.load_state_dict(checkpoint['dec_state_dict'])
         self.prior = checkpoint['prior']
-        self.enc_belief.load_state_dict(checkpoint['enc_belief_state_dict'])
-        self.update_mulogvar_list_for_mixture_of_gaussian_belief()
+        # self.enc_belief.load_state_dict(checkpoint['enc_belief_state_dict'])
+        self.update_mulogvar_offlinedata()
         print("load", ckpt_name)
 
 
@@ -108,7 +106,7 @@ class baseVI:
         self.sim_s = self.init_state_fn(fix_init=fix_init).flatten()
         self.online_data = torch.empty((0,self.sas_dim+1))
         self.sim_b = self.get_belief(sads_array=None).detach().numpy().flatten()
-        self.temp_belief = copy.deepcopy(self.initial_belief)
+        # self.temp_belief = copy.deepcopy(self.initial_belief)
         sb =np.hstack([self.sim_s, self.sim_b])
         return sb
 
@@ -185,7 +183,7 @@ class baseVI:
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            z = 1. * self.mulogvar_list_for_mixture_of_gaussian_belief[m][:self.z_dim]
+            z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
             # print("debug print",m,z)
             self.simenv_rolloutdata[m] = self.rollout_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
         print(" ")
@@ -197,7 +195,7 @@ class baseVI:
     #     self.simenv_rolloutdata = [None]*len(self.offline_data)
     #     for m in range(len(self.offline_data)):
     #         print(m," ", end="")
-    #         self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_list_for_mixture_of_gaussian_belief[m], len_data=200, random_stop=True, zmean=False, update_belief=False)
+    #         self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_offlinedata[m], len_data=200, random_stop=True, zmean=False, update_belief=False)
     #     print(" ")
 
         
@@ -209,56 +207,64 @@ class baseVI:
             self.debug_realenv_rolloutdata[m] = self.rollout_oneepisode_realenv(self.debug_c_list[m])
         print(" ")
 
-        
-#     def loss_for_belief_update(self, sads_torch_array):
-#         z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
-#         saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
-#         ds_mulogvar = self.dec(saz)
-#         ds = sads_torch_array[:, (self.sa_dim):(self.sas_dim)]
-#         loss = - log_gaussian(ds, # y
-#                    ds_mulogvar[:, :self.s_dim], # mu
-#                    ds_mulogvar[:, self.s_dim:] # logvar
-#                    ).sum() 
-#         loss +=  kld(self.temp_belief[:self.z_dim],
-#                      self.temp_belief[self.z_dim:],
-#                      self.initial_belief.detach()[:self.z_dim],
-#                      self.initial_belief.detach()[self.z_dim:])
-#         return loss
     def get_belief(self, sads_array=None):
         if sads_array is None or len(sads_array)==0:
             return 1. * self.initial_belief.detach()
         else:
             sads_array = torch_from_numpy(sads_array)
+            self.temp_belief = copy.deepcopy(self.initial_belief)
 #             with torch.no_grad():
 #                 return 1. * self.enc_belief(sads_array).detach()
-
-            optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
+            
+            optimizer = torch.optim.Adam([self.temp_belief], lr=1e-3)
 #             optimizer = torch.optim.SGD([self.temp_belief],lr=0.1,momentum=0.9)
             best_loss=1e10
             best_iter = 0
             start_time = time.time()
-            for i in range(1000):
+            for i in range(10000):
+
+                # maximum likelihood
+                # optimizer.zero_grad()
+                # tmp_sads_array = 1. * sads_array #[np.random.randint(0,len(sads_array),int(0.8*len(sads_array))),:]
+                # z = self.temp_belief[:self.z_dim] * torch.ones(len(tmp_sads_array), self.z_dim)
+                # saz = torch.cat([tmp_sads_array[:, :(self.sa_dim)], z], dim=1)
+                # ds_mulogvar = self.dec(saz)
+                # ds = tmp_sads_array[:, (self.sa_dim):(self.sas_dim)]
+                # loss = - log_gaussian(ds, # y
+                #            ds_mulogvar[:, :self.s_dim], # mu
+                #            ds_mulogvar[:, self.s_dim:] # logvar
+                #            ).sum() 
+
+
+                # variational bayes
                 optimizer.zero_grad()
                 z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
                 saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
                 ds_mulogvar = self.dec(saz)
                 ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
-#                 print("hishi",ds[0], ds_mulogvar[0])
                 loss = - log_gaussian(ds, # y
                            ds_mulogvar[:, :self.s_dim], # mu
                            ds_mulogvar[:, self.s_dim:] # logvar
                            ).sum() 
                 loss +=  kld(self.temp_belief[:self.z_dim],
                              self.temp_belief[self.z_dim:],
-                             self.initial_belief.detach()[:self.z_dim],
-                             self.initial_belief.detach()[self.z_dim:])
-                loss.backward()
-                optimizer.step()
+                            #  self.initial_belief.detach()[:self.z_dim],
+                            #  self.initial_belief.detach()[self.z_dim:])
+                             self.prior[:self.z_dim],
+                             self.prior[self.z_dim:])
+
+                print(i, self.temp_belief)
                 if loss.item()<best_loss:
                     best_loss = loss.item()
                     best_iter = 1*i
+                    best_temp_belief = copy.deepcopy(self.temp_belief)
                 if (i-best_iter)>100:
                     break
+
+                loss.backward()
+                self.temp_belief.grad += torch.randn_like(self.temp_belief.grad) * 0.1 * (torch.max(self.mulogvar_offlinedata, axis=0)[0] - torch.min(self.mulogvar_offlinedata, axis=0)[0])
+                optimizer.step()
+            self.temp_belief = copy.deepcopy(best_temp_belief)
             print("get_belief",i,"compute_time",time.time()-start_time,"best_loss",best_loss,"loss.item()",loss.item())
             return 1*self.temp_belief.detach()            
 
@@ -277,7 +283,7 @@ class baseVI:
         loss_fn = self._loss_train_unweighted_vae
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
         self.restore_encdec()
-        self.update_mulogvar_list_for_mixture_of_gaussian_belief()
+        self.update_mulogvar_offlinedata()
         return ret
 
 
@@ -377,18 +383,20 @@ class baseVI:
         return loss
 
 
-    def update_mulogvar_list_for_mixture_of_gaussian_belief(self):
+    def update_mulogvar_offlinedata(self):
         with torch.no_grad():
-            self.mulogvar_list_for_mixture_of_gaussian_belief = []
+            self.mulogvar_offlinedata = []
             for m in range(len(self.offline_data)):
                 temp_data_m = self.offline_data[m]
                 z_mulogvar = self.enc(temp_data_m[:, :(self.sas_dim)])
-                self.mulogvar_list_for_mixture_of_gaussian_belief.append(z_mulogvar)
+                self.mulogvar_offlinedata.append(z_mulogvar)
+            self.mulogvar_offlinedata = torch.vstack(self.mulogvar_offlinedata)
+            
 
 
 
     def _loss_train_initial_belief(self, m, flag=False):
-        tmp_z= self.sample_z(self.mulogvar_list_for_mixture_of_gaussian_belief[m], 1)
+        tmp_z= self.sample_z(self.mulogvar_offlinedata[m], 1)
         return - log_gaussian(tmp_z, # y
                                 self.initial_belief[:self.z_dim], # mu
                                 self.initial_belief[self.z_dim:] # logvar
@@ -399,12 +407,5 @@ class baseVI:
         param_list = [self.initial_belief]
         loss_fn = self._loss_train_initial_belief
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
-        self.enc_belief = copy.deepcopy(self.enc)
+        # self.enc_belief = copy.deepcopy(self.enc)
         return ret
-
-#     def train_initial_belief(self, sads):
-        
-#         param_list = [self.initial_belief]
-#         loss_fn = self._loss_train_initial_belief
-#         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)     
-#         return ret
