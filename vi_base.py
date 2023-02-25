@@ -214,58 +214,57 @@ class baseVI:
             sads_array = torch_from_numpy(sads_array)
             self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             
-            optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
-            # optimizer = torch.optim.SGD([self.temp_belief],lr=0.01)
-            best_loss=1e10
-            best_iter = 0
-            start_time = time.time()
-            for i in range(10000):
+            for _ in range(1):
+                optimizer = torch.optim.Adam([self.temp_belief], lr=1e-3)
+                # optimizer = torch.optim.SGD([self.temp_belief],lr=0.01)
+                best_loss=1e10
+                best_iter = 0
+                start_time = time.time()
+                for i in range(10000):
 
-                optimizer.zero_grad()
+                    optimizer.zero_grad()
 
-                # maximum likelihood
-                # tmp_sads_array = 1. * sads_array #[np.random.randint(0,len(sads_array),int(0.8*len(sads_array))),:]
-                # z = self.temp_belief[:self.z_dim] * torch.ones(len(tmp_sads_array), self.z_dim)
-                # saz = torch.cat([tmp_sads_array[:, :(self.sa_dim)], z], dim=1)
-                # ds_mulogvar = self.dec(saz)
-                # ds = tmp_sads_array[:, (self.sa_dim):(self.sas_dim)]
-                # loss = - log_gaussian(ds, # y
-                #            ds_mulogvar[:, :self.s_dim], # mu
-                #            ds_mulogvar[:, self.s_dim:] # logvar
-                #            ).sum() 
+                    # maximum likelihood
+                    # tmp_sads_array = 1. * sads_array #[np.random.randint(0,len(sads_array),int(0.8*len(sads_array))),:]
+                    # z = self.temp_belief[:self.z_dim] * torch.ones(len(tmp_sads_array), self.z_dim)
+                    # saz = torch.cat([tmp_sads_array[:, :(self.sa_dim)], z], dim=1)
+                    # ds_mulogvar = self.dec(saz)
+                    # ds = tmp_sads_array[:, (self.sa_dim):(self.sas_dim)]
+                    # loss = - log_gaussian(ds, # y
+                    #            ds_mulogvar[:, :self.s_dim], # mu
+                    #            ds_mulogvar[:, self.s_dim:] # logvar
+                    #            ).sum() 
 
-                # variational bayes
-                z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
-                saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
-                ds_mulogvar = self.dec(saz)
-                ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
-                loss = - log_gaussian(ds, # y
-                           ds_mulogvar[:, :self.s_dim], # mu
-                           ds_mulogvar[:, self.s_dim:] # logvar
-                           ).sum() 
+                    # variational bayes
+                    z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
+                    saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+                    ds_mulogvar = self.dec(saz)
+                    ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+                    loss = - log_gaussian(ds, # y
+                            ds_mulogvar[:, :self.s_dim], # mu
+                            ds_mulogvar[:, self.s_dim:] # logvar
+                            ).sum() 
+                    loss +=  kld(self.temp_belief[:self.z_dim],
+                                self.temp_belief[self.z_dim:],
+                                self.initial_belief.detach()[:self.z_dim],
+                                self.initial_belief.detach()[self.z_dim:])
+                                #  self.prior[:self.z_dim],
+                                #  self.prior[self.z_dim:])
 
-                loss +=  kld(self.temp_belief[:self.z_dim],
-                             self.temp_belief[self.z_dim:],
-                             self.initial_belief.detach()[:self.z_dim],
-                             self.initial_belief.detach()[self.z_dim:])
-                            #  self.prior[:self.z_dim],
-                            #  self.prior[self.z_dim:])
-
-                if loss.item()<best_loss:
-                    best_loss = loss.item()
-                    best_iter = 1*i
-                    best_temp_belief = copy.deepcopy(self.temp_belief)
-                #     print("a", i, self.temp_belief.data)
-                # else:
-                #     print("b", i, self.temp_belief.data)
-                if (i-best_iter)>100:
-                    break
-
-                loss.backward()
-                # self.temp_belief.grad += torch.randn_like(self.temp_belief.grad) * 0.1 * (torch.max(self.mulogvar_offlinedata, axis=0)[0] - torch.min(self.mulogvar_offlinedata, axis=0)[0])
-                optimizer.step()
-            self.temp_belief = copy.deepcopy(best_temp_belief)
-            print("get_belief",i,"compute_time",time.time()-start_time,"best_loss",best_loss,"loss.item()",loss.item())
+                    if loss.item()<best_loss:
+                        best_loss = loss.item()
+                        best_iter = 1*i
+                        best_temp_belief = copy.deepcopy(self.temp_belief)
+                    #     print("a", i, self.temp_belief.data)
+                    # else:
+                    #     print("b", i, self.temp_belief.data)
+                    if (i-best_iter)>100:
+                        break
+                    loss.backward()
+                    self.temp_belief.grad += torch.randn_like(self.temp_belief.grad) * 0.1 * (torch.max(self.mulogvar_offlinedata, axis=0)[0] - torch.min(self.mulogvar_offlinedata, axis=0)[0])
+                    optimizer.step()
+                self.temp_belief = copy.deepcopy(best_temp_belief)
+                print("get_belief",i,"compute_time",time.time()-start_time,"best_loss",best_loss,"loss.item()",loss.item())
             return 1*self.temp_belief.detach()            
 
     def train_unweighted_vae(self, num_iter, lr, early_stop_step, flag=1):
