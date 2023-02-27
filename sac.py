@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Adam
 from utils import soft_update, hard_update
-from model import GaussianPolicy, QNetwork, DeterministicPolicy
+from model_policy import GaussianPolicy, QNetwork, DeterministicPolicy
 
 args_hidden_size = 256
 args_lr = 0.0003
