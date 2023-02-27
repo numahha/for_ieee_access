@@ -1,8 +1,10 @@
 TODO:
-* rollout_simenv refactor
-  * goal is to capture z for real/simulation transition data
-* 拡大状態版SACを実装
-
+* 信念更新の高速化
+* 重み付き推定の方をもう一度動作確認
+* 原稿を修正
+* 方策評価実験パートを書く
+* 係数の計算・ペナルティモデルの学習を考える
+* 
 
 conda create -n iwvi python==3.8
 conda activate iwvi
