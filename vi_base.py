@@ -133,7 +133,11 @@ class baseVI:
         eps = np.random.randn(len(ds_mu)) #* 0. # デバッグ：確定的システムにするなら0をかける
         std = np.exp(0.5 * ds_mulogvar[self.s_dim:])
         ds = (eps*std+ds_mu)
+        # print("ds",ds,"ds_mu",ds_mu,"std*eps",std*eps)
         rew = self.rew_fn(self.sim_s, a)
+
+        current_data = torch_from_numpy(np.hstack([1*self.sim_s, a, ds, rew]))
+        self.online_data = torch.vstack([self.online_data, current_data])
 
         self.sim_s = self.sim_s + ds
         done = False
@@ -148,8 +152,6 @@ class baseVI:
         #     with torch.no_grad():
         #         penalty = self.penalty_model(torch.hstack([saz, self.train_g_m_list[self.sim_m]]))
         #     rew -= self.lam * penalty.flatten()[0]
-        current_data = torch_from_numpy(np.hstack([self.sim_s, a, ds, rew]))
-        self.online_data = torch.vstack([self.online_data, current_data])
         if update_belief:
             self.sim_b = self.get_belief(self.online_data[:, :(self.sas_dim)]).detach().flatten()
         sb = np.hstack([self.sim_s, self.sim_b])
@@ -160,9 +162,9 @@ class baseVI:
             return 1. * self.initial_belief.detach()
         else:
             sads_array = torch_from_numpy(sads_array)
-            # self.temp_belief = torch.nn.Parameter(torch.hstack([self.temp_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            self.temp_belief = torch.nn.Parameter(torch.hstack([self.temp_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             # self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
-            self.temp_belief = torch.nn.Parameter(torch.hstack([self.sim_z, self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            # self.temp_belief = torch.nn.Parameter(torch.hstack([self.sim_z, self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             
             for _ in range(1):
                 optimizer = torch.optim.Adam([self.temp_belief], lr=1e-3)
@@ -175,35 +177,35 @@ class baseVI:
                     optimizer.zero_grad()
 
                     # maximum likelihood
-                    tmp_sads_array = 1. * sads_array #[np.random.randint(0,len(sads_array),int(0.8*len(sads_array))),:]
-                    z = self.temp_belief[:self.z_dim] * torch.ones(len(tmp_sads_array), self.z_dim)
-                    saz = torch.cat([tmp_sads_array[:, :(self.sa_dim)], z], dim=1)
-                    ds_mulogvar = self.dec(saz)
-                    ds = tmp_sads_array[:, (self.sa_dim):(self.sas_dim)]
-                    loss = - log_gaussian(ds, # y
-                               ds_mulogvar[:, :self.s_dim], # mu
-                               ds_mulogvar[:, self.s_dim:] # logvar
-                               ).sum() 
+                    # tmp_sads_array = 1. * sads_array #[np.random.randint(0,len(sads_array),int(0.8*len(sads_array))),:]
+                    # z = self.temp_belief[:self.z_dim] * torch.ones(len(tmp_sads_array), self.z_dim)
+                    # saz = torch.cat([tmp_sads_array[:, :(self.sa_dim)], z], dim=1)
+                    # ds_mulogvar = self.dec(saz)
+                    # ds = tmp_sads_array[:, (self.sa_dim):(self.sas_dim)]
+                    # loss = - log_gaussian(ds, # y
+                    #            ds_mulogvar[:, :self.s_dim], # mu
+                    #            ds_mulogvar[:, self.s_dim:] # logvar
+                    #            ).sum() 
 
                     # variational bayes
-                    # z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
-                    # saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
-                    # ds_mulogvar = self.dec(saz)
-                    # ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
-                    # loss = - log_gaussian(ds, # y
-                    #         ds_mulogvar[:, :self.s_dim], # mu
-                    #         ds_mulogvar[:, self.s_dim:] # logvar
-                    #         ).sum() 
-                    # loss +=  kld(self.temp_belief[:self.z_dim],
-                    #             self.temp_belief[self.z_dim:],
-                    #             self.initial_belief.detach()[:self.z_dim],
-                    #             self.initial_belief.detach()[self.z_dim:])
+                    z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
+                    saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+                    ds_mulogvar = self.dec(saz)
+                    ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+                    loss = - log_gaussian(ds, # y
+                            ds_mulogvar[:, :self.s_dim], # mu
+                            ds_mulogvar[:, self.s_dim:] # logvar
+                            ).sum() 
+                    loss +=  kld(self.temp_belief[:self.z_dim],
+                                self.temp_belief[self.z_dim:],
+                                self.initial_belief.detach()[:self.z_dim],
+                                self.initial_belief.detach()[self.z_dim:])
 
                     if loss.item()<best_loss:
                         best_loss = loss.item()
                         best_iter = 1*i
                         best_temp_belief = copy.deepcopy(self.temp_belief)
-                    #     print("a", i, self.temp_belief.data)
+                        # print("update", i, self.temp_belief.data.numpy(),"loss.item() {:.3g}".format(loss.item()))
                     # else:
                     #     print("b", i, self.temp_belief.data)
                     if (i-best_iter)>100:
