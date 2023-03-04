@@ -28,7 +28,6 @@ class iwVI(baseVI):
             print("fail load vi_iw_ckpt_basepart")
         checkpoint = torch.load("vi_iw_ckpt")
         self.ratio_model.load_state_dict(checkpoint['ratio_model_state_dict'])
-        self.update_mulogvar_list_for_mixture_of_gaussian_belief()
 
     def load_base(self):
         super().load()
@@ -47,7 +46,7 @@ class iwVI(baseVI):
             for m in range(len(self.offline_data)):
                 temp_offline_sa = self.offline_data[m][:,:(self.sa_dim)]
                 len_data = len(temp_offline_sa)
-                z_mulogvar_offline = self.mulogvar_list_for_mixture_of_gaussian_belief[m]
+                z_mulogvar_offline = 1. * self.mulogvar_offlinedata[m]
                 z = z_mulogvar_offline[:self.z_dim]*torch.ones(len_data, self.z_dim)
                 g = z_mulogvar_offline*torch.ones(len_data, 2*self.z_dim)
                 de_input_data = torch.cat([temp_offline_sa, z, g], axis=1)
@@ -72,7 +71,7 @@ class iwVI(baseVI):
             return [], []
         loss_fn = self._loss_train_weighted_vae
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
-        self.update_mulogvar_list_for_mixture_of_gaussian_belief()
+        self.update_mulogvar_offlinedata()
         return ret
 
     def eval_loss(self, weight_alpha):
@@ -114,7 +113,7 @@ class iwVI(baseVI):
 
         len_data = len(temp_offline_sa)
         with torch.no_grad():
-            z_mulogvar_offline = self.mulogvar_list_for_mixture_of_gaussian_belief[m]
+            z_mulogvar_offline = 1. * self.mulogvar_offlinedata[m]
         simulation_data_saz = torch_from_numpy(self.simenv_rolloutdata[m])
         z = self.sample_z(z_mulogvar_offline, len_data)
         g = z_mulogvar_offline*torch.ones(len_data, 2*self.z_dim)

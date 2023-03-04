@@ -17,7 +17,7 @@ class baseVI:
         a_dim = args_init_dict["a_dim"]
         z_dim = args_init_dict["z_dim"]
         env = args_init_dict["env"]
-        self.mdp_policy = args_init_dict["policy"]
+        self.mdp_policy = args_init_dict["mdp_policy"]
         debug_info = args_init_dict["debug_info"]
 
         train_valid_ratio = 0.2
@@ -265,6 +265,27 @@ class baseVI:
             z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
             # print("debug print",m,z)
             self.simenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
+        print(" ")
+
+
+    def get_sim_rollout_mdppolicy_data_randomstop(self, update_belief=False):
+        self.dec.my_np_compile()
+        self.mdp_policy_evaluate=True
+        self.simenv_rolloutdata = [None]*len(self.offline_data)
+        for m in range(len(self.offline_data)):
+            print(m," ", end="")
+            tmp_rolloutdata = None
+            while 1:
+                z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
+                if tmp_rolloutdata is None:
+                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
+                else:
+                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)])
+                if len(tmp_rolloutdata)>(len(self.offline_data[m])*3):
+                    break
+            idx = np.array(range(len(tmp_rolloutdata)))
+            np.random.shuffle(idx)
+            self.simenv_rolloutdata[m] = tmp_rolloutdata[ idx[:len(self.offline_data[m])] ]
         print(" ")
 
 

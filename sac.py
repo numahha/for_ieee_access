@@ -137,3 +137,4 @@ class SAC(object):
                 self.policy.train()
                 self.critic.train()
                 self.critic_target.train()
+        self.policy.my_np_compile()
