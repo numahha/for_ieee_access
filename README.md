@@ -12,7 +12,9 @@ pip install notebook matplotlib torch
 pip install gym==0.25.1
 
 
-
+ubuntu tex compile 
+platex main.tex
+dvipdfmx main.dvi
 
 # 開発メモ
 * 最終的にはjoint-optimization vs two-stage optimizationで議論をするため、two-stageのモデル推定は一応何でもいいはず。

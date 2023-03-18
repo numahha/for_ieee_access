@@ -102,7 +102,7 @@ class RatioModel(torch.nn.Module):
         h_dim=16
         activate_fn=torch.nn.Tanh
         self.net = torch.nn.Sequential(
-                            torch.nn.Linear(s_dim+a_dim+3*z_dim, h_dim),
+                            torch.nn.Linear(s_dim+a_dim+2*z_dim, h_dim),
                             activate_fn(),
                             torch.nn.Linear(h_dim, h_dim),
                             activate_fn(),

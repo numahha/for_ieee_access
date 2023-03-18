@@ -46,9 +46,8 @@ class iwVI(baseVI):
             for m in range(len(self.offline_data)):
                 temp_offline_sa = self.offline_data[m][:,:(self.sa_dim)]
                 len_data = len(temp_offline_sa)
-                z_mulogvar_offline = 1. * self.mulogvar_offlinedata[m]
-                z = z_mulogvar_offline[:self.z_dim]*torch.ones(len_data, self.z_dim)
-                g = z_mulogvar_offline*torch.ones(len_data, 2*self.z_dim)
+                z = self.mulogvar_offlinedata[m][:self.z_dim]*torch.ones(len_data, self.z_dim)
+                g = self.mulogvar_offlinedata[m][:self.z_dim]*torch.ones(len_data, self.z_dim)
                 de_input_data = torch.cat([temp_offline_sa, z, g], axis=1)
                 de_output_data = self.ratio_model(de_input_data)
                 self.offlinedata_weight[m] = de_output_data.clone()
@@ -87,7 +86,7 @@ class iwVI(baseVI):
             for _ in range(ave_num):
                 temp_train_loss = 0
                 for m in train_idx_list:
-                    temp_train_loss += loss_fn(m, flag=True).item()
+                    temp_train_loss += loss_fn(m).item()
                 temp_train_loss /= len(train_idx_list)
                 train_loss_list.append(temp_train_loss)
             train_loss_list = np.array(train_loss_list)
@@ -97,7 +96,7 @@ class iwVI(baseVI):
             for _ in range(ave_num):
                 temp_valid_loss = 0
                 for m in valid_idx_list:
-                    temp_valid_loss += loss_fn(m, flag=True).item()
+                    temp_valid_loss += loss_fn(m).item()
                 temp_valid_loss /= len(valid_idx_list)
                 valid_loss_list.append(temp_valid_loss)
             valid_loss_list = np.array(valid_loss_list)
@@ -105,18 +104,16 @@ class iwVI(baseVI):
 
         print("train_loss: ",train_loss)
         print("valid_loss: ",valid_loss)
+        return train_loss, valid_loss
 
 
-    def _loss_train_ratio(self, m, flag=False):
+    def _loss_train_ratio(self, m):
 
         temp_offline_sa = self.offline_data[m][:,:(self.sa_dim)]
-
-        len_data = len(temp_offline_sa)
-        with torch.no_grad():
-            z_mulogvar_offline = 1. * self.mulogvar_offlinedata[m]
         simulation_data_saz = torch_from_numpy(self.simenv_rolloutdata[m])
-        z = self.sample_z(z_mulogvar_offline, len_data)
-        g = z_mulogvar_offline*torch.ones(len_data, 2*self.z_dim)
+        z = simulation_data_saz[:,-self.z_dim:]
+        len_data = len(temp_offline_sa)
+        g = self.mulogvar_offlinedata[m][:self.z_dim]*torch.ones(len_data, 1*self.z_dim)
         de_input_data = torch.cat([temp_offline_sa, z, g], axis=1)
         nu_input_data = torch.cat([simulation_data_saz, g], axis=1)
         de_output_data = self.ratio_model(de_input_data)
@@ -125,7 +122,7 @@ class iwVI(baseVI):
         return loss
 
 
-    def _loss_train_weighted_vae(self, m, flag=False):
+    def _loss_train_weighted_vae(self, m):
         temp_data_m = self.offline_data[m]
         z_mulogvar = self.enc(temp_data_m[:, :(self.sas_dim)])
 
@@ -136,7 +133,7 @@ class iwVI(baseVI):
         ds_m = temp_data_m[:, (self.sa_dim):(self.sas_dim)]
 
         with torch.no_grad():
-            zg = torch.cat([z*torch.ones(len(temp_data_m),self.z_dim), z_mulogvar*torch.ones(len(temp_data_m), 2*self.z_dim)], axis=1)
+            zg = torch.cat([z*torch.ones(len(temp_data_m),self.z_dim), z_mulogvar[:self.z_dim]*torch.ones(len(temp_data_m), self.z_dim)], axis=1)
             w = self.ratio_model(torch.cat([temp_data_m[:, :(self.sa_dim)], zg], axis=1)).flatten()
             if weight_normalize_flag:
                 w *= len(temp_data_m) / np.mean(self.offlinedata_weight_sum)
@@ -144,12 +141,13 @@ class iwVI(baseVI):
 
         loss = 0
 
-        # Approximate of E_{z~q}[ - log p(y|x,z) ]
-        if flag:
-            temp_alpha = 1
-        else:
-            temp_alpha = self.weight_alpha
+        # # Approximate of E_{z~q}[ - log p(y|x,z) ]
+        # if flag:
+        #     temp_alpha = 1
+        # else:
+        #     temp_alpha = self.weight_alpha
             # temp_alpha = self.weight_alpha
+        temp_alpha = self.weight_alpha
 
         loss += - (log_gaussian(ds_m, # y
                                ds_mulogvar[:, :self.s_dim], # mu
