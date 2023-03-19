@@ -167,12 +167,12 @@ class baseVI:
             # self.temp_belief = torch.nn.Parameter(torch.hstack([self.sim_z, self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             
             for _ in range(1):
-                optimizer = torch.optim.Adam([self.temp_belief], lr=1e-3)
+                optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
                 # optimizer = torch.optim.SGD([self.temp_belief],lr=0.01)
                 best_loss=1e10
                 best_iter = 0
                 start_time = time.time()
-                for i in range(10000):
+                for i in range(5000):
 
                     optimizer.zero_grad()
 
@@ -208,13 +208,13 @@ class baseVI:
                         # print("update", i, self.temp_belief.data.numpy(),"loss.item() {:.3g}".format(loss.item()))
                     # else:
                     #     print("b", i, self.temp_belief.data)
-                    if (i-best_iter)>100:
+                    if (i-best_iter)>50:
                         break
                     loss.backward()
                     # self.temp_belief.grad += torch.randn_like(self.temp_belief.grad) * 0.1 * (torch.max(self.mulogvar_offlinedata, axis=0)[0] - torch.min(self.mulogvar_offlinedata, axis=0)[0])
                     optimizer.step()
                 self.temp_belief = copy.deepcopy(best_temp_belief)
-                print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()))
+                print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()),end="\r")
             return 1*self.temp_belief.detach()            
 
 

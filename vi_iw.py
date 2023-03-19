@@ -142,11 +142,6 @@ class iwVI(baseVI):
         loss = 0
 
         # # Approximate of E_{z~q}[ - log p(y|x,z) ]
-        # if flag:
-        #     temp_alpha = 1
-        # else:
-        #     temp_alpha = self.weight_alpha
-            # temp_alpha = self.weight_alpha
         temp_alpha = self.weight_alpha
 
         loss += - (log_gaussian(ds_m, # y
