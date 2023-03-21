@@ -92,7 +92,9 @@ class Decoder(torch.nn.Module):
                 x = self.my_np_layer[i][1] @ x + self.my_np_layer[i][2].reshape(-1,1)
             if self.my_np_layer[i][0] == "relu":
                 x = np.clip(x, 0, None)
-        return x.T
+        x = x.T
+        x = np.hstack([x[:,:self.s_dim], np.clip(x[:,self.s_dim:],clamp_logvarmin,None)])
+        return x
 
 
 
