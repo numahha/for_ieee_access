@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-clamp_logvarmin=-8
+clamp_logvarmin=-8 #-8 # -10
 clamp_ratiomin=1e-8
 clamp_ratiomax=1e8
 clamp_flag = True

@@ -214,7 +214,7 @@ class baseVI:
                     # self.temp_belief.grad += torch.randn_like(self.temp_belief.grad) * 0.1 * (torch.max(self.mulogvar_offlinedata, axis=0)[0] - torch.min(self.mulogvar_offlinedata, axis=0)[0])
                     optimizer.step()
                 self.temp_belief = copy.deepcopy(best_temp_belief)
-                print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()),end="\r")
+                print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()),end="       \r")
             return 1*self.temp_belief.detach()            
 
 
