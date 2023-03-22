@@ -124,6 +124,21 @@ class baseVI:
         return sb
 
 
+    def reset_po(self):
+        self.sim_timestep=0
+        m = np.random.randint(len(self.mulogvar_offlinedata))
+        mulogvar = self.mulogvar_offlinedata[m]
+        std = torch.exp(0.5 * mulogvar[self.z_dim:])
+        eps = torch.randn_like(std)
+        self.sim_z = (eps*std+mulogvar[:self.z_dim]).detach().flatten()
+        print("mulogvar",mulogvar, "self.sim_z",self.sim_z)
+        self.sim_s = self.init_state_fn(fix_init=False).flatten()
+        self.online_data = torch.empty((0,self.sas_dim+1))
+        self.sim_b = self.get_belief(sads_array=None).detach().numpy().flatten()
+        self.temp_belief = copy.deepcopy(self.initial_belief)
+        # self.temp_belief = copy.deepcopy(self.initial_belief)
+        sb =np.hstack([self.sim_s, self.sim_b])
+        return sb
 
     def step(self, a, update_belief=True, penalty_flag=True):
         a= a.flatten()

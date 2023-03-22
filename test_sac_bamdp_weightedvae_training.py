@@ -31,7 +31,8 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
+# parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
+parser.add_argument('--num_steps', type=int, default=40001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 # parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
 #                     help='hidden size (default: 256)')
@@ -42,8 +43,7 @@ parser.add_argument('--start_steps', type=int, default=2000, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
 # parser.add_argument('--target_update_interval', type=int, default=1, metavar='N',
 #                     help='Value target update per no. of updates per step (default: 1)')
-# parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
-parser.add_argument('--replay_size', type=int, default=20000, metavar='N',
+parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
 # parser.add_argument('--cuda', action="store_true",
 #                     help='run on CUDA (default: False)')
@@ -102,8 +102,8 @@ for i_episode in itertools.count(1):
     episode_reward = 0
     episode_steps = 0
     done = False
-    state = env.reset()
-
+    # state = env.reset()
+    state = env.reset_po()
     while not done:
         if args.start_steps > total_numsteps:
             action = env.action_space.sample()  # Sample random action
@@ -146,7 +146,8 @@ for i_episode in itertools.count(1):
         avg_reward = 0.
         episodes = 5
         for _  in range(episodes):
-            state = env.reset()
+            # state = env.reset()
+            state = env.reset_po()
             episode_reward = 0
             done = False
             while not done:
