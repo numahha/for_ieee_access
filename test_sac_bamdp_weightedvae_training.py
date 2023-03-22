@@ -5,6 +5,7 @@ import custom_gym
 import numpy as np
 import itertools
 import torch
+import random
 from sac import SAC
 # from torch.utils.tensorboard import SummaryWriter
 from replay_memory import ReplayMemory
@@ -57,6 +58,7 @@ env.action_space.seed(args.seed)
 
 torch.manual_seed(args.seed)
 np.random.seed(args.seed)
+random.seed(args.seed)
 
 
 import vi_iw
