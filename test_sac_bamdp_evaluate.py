@@ -86,10 +86,10 @@ agent = SAC(env.observation_space.shape[0]+z_dim*2, env.action_space)
 
 
 
-agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_standardvae_", evaluate=True)
-vi = vi_base.baseVI(args_init_dict)
-# agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_weightedvae_", evaluate=True)
-# vi = vi_iw.iwVI(args_init_dict)
+# agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_standardvae_", evaluate=True)
+# vi = vi_base.baseVI(args_init_dict)
+agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_weightedvae_", evaluate=True)
+vi = vi_iw.iwVI(args_init_dict)
 
 
 vi.load()
@@ -122,13 +122,28 @@ for _  in range(episodes):
         episode_reward += reward
 
         state = next_state
-        belief = vi.get_belief(sads_array=torch_from_numpy(sads_array))
+        belief = vi.get_belief(sads_array=sads_array)
+
+        # debug plot
+        if 0:
+            plotnum=40
+            losslist=[]
+            zlist=[]
+            for i in range(plotnum):
+                zmin = min(vi.mulogvar_offlinedata[:,0].min(),belief[0])
+                zmax = max(vi.mulogvar_offlinedata[:,0].max(),belief[0])
+                z = zmin + (zmax-zmin)*( 1*(i/plotnum)-0)
+                zlist.append(z)
+                losslist.append(vi.get_nll(sads_array,z))
+            plt.plot(zlist,losslist)
+            plt.show()
+
     print("\nenv.get_params()",env.get_params())
-    plt.plot(sads_array[0,0],sads_array[0,1],"o")
-    plt.plot(sads_array[:,0],sads_array[:,1])
-    plt.show()
-    plt.plot(belief_array[:,0])
-    plt.show()
+    # plt.plot(sads_array[0,0],sads_array[0,1],"o")
+    # plt.plot(sads_array[:,0],sads_array[:,1])
+    # plt.show()
+    # plt.plot(belief_array[:,0])
+    # plt.show()
 
     avg_reward += episode_reward
 avg_reward /= episodes

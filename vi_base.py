@@ -177,8 +177,8 @@ class baseVI:
             return 1. * self.initial_belief.detach()
         else:
             sads_array = torch_from_numpy(sads_array)
-            self.temp_belief = torch.nn.Parameter(torch.hstack([self.temp_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
-            # self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            # self.temp_belief = torch.nn.Parameter(torch.hstack([self.temp_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             # self.temp_belief = torch.nn.Parameter(torch.hstack([self.sim_z, self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             
             for _ in range(1):
@@ -230,8 +230,19 @@ class baseVI:
                     optimizer.step()
                 self.temp_belief = copy.deepcopy(best_temp_belief)
                 print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()),end="       \r")
-            return 1*self.temp_belief.detach()            
+            return 1*self.temp_belief.detach()
 
+    def get_nll(self, sads_array, z):
+        with torch.no_grad():
+            sads_array = torch_from_numpy(sads_array)
+            saz = torch.cat([sads_array[:, :(self.sa_dim)], z*torch.ones(len(sads_array), self.z_dim)], dim=1)
+            ds_mulogvar = self.dec(saz)
+            ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+            loss = - log_gaussian(ds, # y
+                    ds_mulogvar[:, :self.s_dim], # mu
+                    ds_mulogvar[:, self.s_dim:] # logvar
+                    ).sum() 
+        return loss.item()
 
     
     # def rollout_oneepisode_realenv(self, temp_c):
