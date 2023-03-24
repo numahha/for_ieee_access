@@ -125,7 +125,7 @@ for _  in range(episodes):
         belief = vi.get_belief(sads_array=sads_array)
 
         # debug plot
-        if 0:
+        if 1:
             plotnum=40
             losslist=[]
             zlist=[]
@@ -139,11 +139,11 @@ for _  in range(episodes):
             plt.show()
 
     print("\nenv.get_params()",env.get_params())
-    # plt.plot(sads_array[0,0],sads_array[0,1],"o")
-    # plt.plot(sads_array[:,0],sads_array[:,1])
-    # plt.show()
-    # plt.plot(belief_array[:,0])
-    # plt.show()
+    plt.plot(sads_array[0,0],sads_array[0,1],"o")
+    plt.plot(sads_array[:,0],sads_array[:,1])
+    plt.show()
+    plt.plot(belief_array[:,0])
+    plt.show()
 
     avg_reward += episode_reward
 avg_reward /= episodes

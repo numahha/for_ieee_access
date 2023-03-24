@@ -18,6 +18,7 @@ class baseVI:
         z_dim = args_init_dict["z_dim"]
         env = args_init_dict["env"]
         self.mdp_policy = args_init_dict["mdp_policy"]
+        self.bamdp_policy = args_init_dict["bamdp_policy"]
         debug_info = args_init_dict["debug_info"]
 
         train_valid_ratio = 0.2
@@ -245,7 +246,6 @@ class baseVI:
         return loss.item()
 
     
-    # def rollout_oneepisode_realenv(self, temp_c):
     def rollout_mdppolicy_oneepisode_realenv(self, temp_c):
         state = self.debug_realenv.reset(fix_init=True)
         done = False
@@ -253,14 +253,33 @@ class baseVI:
         self.debug_realenv.env.env.set_params(c=temp_c)
         while not done:
             with torch.no_grad():
-                action = self.mdp_policy(state, evaluate=self.mdp_policy_evaluate)  # Sample action from policy
+                action = self.mdp_policy(state, evaluate=self.policy_evaluate)  # Sample action from policy
             stateaction_history.append(np.hstack([state.flatten(), action.flatten()]))
             next_state, reward, done, _ = self.debug_realenv.step(action) # Step
             state = 1 * next_state
         return np.array(stateaction_history)
 
+
+    def rollout_bamdppolicy_oneepisode_realenv(self, temp_c):
+        state = self.debug_realenv.reset(fix_init=True)
+        done = False
+        sads_array=np.empty((0,self.s_dim*2+self.a_dim))
+        belief = self.get_belief()
+        stateaction_history = []
+        self.debug_realenv.env.env.set_params(c=temp_c)
+        while not done:
+            aug_state = np.hstack([state, belief.numpy()])
+            with torch.no_grad():
+                action = self.bamdp_policy(aug_state, evaluate=self.policy_evaluate)  # Sample action from policy
+            stateaction_history.append(np.hstack([state.flatten(), action.flatten()]))
+            next_state, reward, done, _ = self.debug_realenv.step(action) # Step
+            sads_array = np.vstack([sads_array, 
+                                    np.hstack([state, action, next_state-state])])
+            belief = self.get_belief(sads_array=sads_array)
+            state = 1 * next_state
+        return np.array(stateaction_history)
+
     
-    # def rollout_oneepisode_simenv(self, z=None, random_stop=True, update_belief=False):
     def rollout_mdppolicy_oneepisode_simenv(self, z=None, random_stop=True, update_belief=False):
         sb = self.reset(fix_init=True, z=z)
         state = sb[:self.s_dim]
@@ -270,7 +289,7 @@ class baseVI:
             if np.abs(state).max()>1e3:
                 break
             with torch.no_grad():
-                action = self.mdp_policy(state, evaluate=self.mdp_policy_evaluate)
+                action = self.mdp_policy(state, evaluate=self.policy_evaluate)
             stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
             next_sb, reward, done, _ = self.step(action, update_belief=update_belief)
             state = next_sb[:self.s_dim]
@@ -284,7 +303,7 @@ class baseVI:
 
     def get_sim_rollout_mdppolicy_data_fixlen(self, update_belief=False):
         self.dec.my_np_compile()
-        self.mdp_policy_evaluate=True
+        self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
@@ -293,10 +312,63 @@ class baseVI:
             self.simenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
         print(" ")
 
+    def get_sim_rollout_mdppolicy_data_randomstop(self, update_belief=False):
+        self.dec.my_np_compile()
+        self.policy_evaluate=True
+        self.simenv_rolloutdata = [None]*len(self.offline_data)
+        for m in range(len(self.offline_data)):
+            print(m," ", end="")
+            tmp_rolloutdata = None
+            while 1:
+                z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
+                if tmp_rolloutdata is None:
+                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
+                else:
+                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)])
+                if len(tmp_rolloutdata)>(len(self.offline_data[m])*3):
+                    break
+            idx = np.array(range(len(tmp_rolloutdata)))
+            np.random.shuffle(idx)
+            self.simenv_rolloutdata[m] = tmp_rolloutdata[ idx[:len(self.offline_data[m])] ]
+        print(" ")
+
+
+    def rollout_bamdppolicy_oneepisode_simenv(self, z=None, random_stop=True):
+        state = self.reset(fix_init=True, z=z)
+        done = False
+        stateaction_history = []
+        while True:
+            if np.abs(state).max()>1e3:
+                break
+            with torch.no_grad():
+                action = self.bamdp_policy(state, evaluate=self.policy_evaluate)
+            stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
+            next_sb, reward, done, _ = self.step(action)
+            state = next_sb
+            if random_stop:
+                if np.random.rand()>self.gamma:
+                    break
+            else:
+                if done:
+                    break
+        return np.array(stateaction_history)
+
+
+    def get_sim_rollout_bamdppolicy_data_fixlen(self):
+        self.dec.my_np_compile()
+        self.policy_evaluate=True
+        self.simenv_rolloutdata = [None]*len(self.offline_data)
+        for m in range(len(self.offline_data)):
+            print("\n",m)
+            z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
+            # print("debug print",m,z)
+            self.simenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_simenv(z=z, random_stop=False)
+        print(" ")
+
 
     def get_sim_rollout_mdppolicy_data_randomstop(self, update_belief=False):
         self.dec.my_np_compile()
-        self.mdp_policy_evaluate=True
+        self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
@@ -317,7 +389,7 @@ class baseVI:
 
     # def get_sim_rollout_data_randomlen(self, update_belief=False):
     #     self.dec.my_np_compile()
-    #     self.mdp_policy_evaluate=False
+    #     self.policy_evaluate=False
     #     self.simenv_rolloutdata = [None]*len(self.offline_data)
     #     for m in range(len(self.offline_data)):
     #         print(m," ", end="")
@@ -327,10 +399,18 @@ class baseVI:
         
 
     def get_real_rollout_mdppolicy_data(self):
-        self.mdp_policy_evaluate= True
+        self.policy_evaluate= True
         for m in range(len(self.offline_data)):
             print(m," ", end="")
             self.debug_realenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_realenv(self.debug_c_list[m])
+        print(" ")
+
+
+    def get_real_rollout_bamdppolicy_data(self):
+        self.policy_evaluate= True
+        for m in range(len(self.offline_data)):
+            print("\n",m)
+            self.debug_realenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_realenv(self.debug_c_list[m])
         print(" ")
 
 
