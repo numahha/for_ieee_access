@@ -173,18 +173,87 @@ class baseVI:
         sb = np.hstack([self.sim_s, self.sim_b])
         return sb, rew, done, {}
 
+
+    # def get_belief(self, sads_array=None):
+    #     if sads_array is None or len(sads_array)==0:
+    #         return 1. * self.initial_belief.detach()
+    #     else:
+    #         sads_array = torch_from_numpy(sads_array)
+    #         # self.temp_belief = torch.nn.Parameter(torch.hstack([self.temp_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+    #         self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+    #         # self.temp_belief = torch.nn.Parameter(torch.hstack([self.sim_z, self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            
+    #         for _ in range(1):
+    #             optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
+    #             best_loss=1e10
+    #             best_iter = 0
+    #             start_time = time.time()
+    #             for i in range(5000):
+
+    #                 optimizer.zero_grad()
+
+    #                 z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
+    #                 saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+    #                 ds_mulogvar = self.dec(saz)
+    #                 ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+    #                 loss = - log_gaussian(ds, # y
+    #                         ds_mulogvar[:, :self.s_dim], # mu
+    #                         ds_mulogvar[:, self.s_dim:] # logvar
+    #                         ).sum() 
+    #                 loss +=  kld(self.temp_belief[:self.z_dim],
+    #                             self.temp_belief[self.z_dim:],
+    #                             self.initial_belief.detach()[:self.z_dim],
+    #                             self.initial_belief.detach()[self.z_dim:])
+
+    #                 if loss.item()<best_loss:
+    #                     best_loss = loss.item()
+    #                     best_iter = 1*i
+    #                     best_temp_belief = copy.deepcopy(self.temp_belief)
+    #                 if (i-best_iter)>50:
+    #                     break
+    #                 loss.backward()
+    #                 # self.temp_belief.grad += torch.randn_like(self.temp_belief.grad) * 0.1 * (torch.max(self.mulogvar_offlinedata, axis=0)[0] - torch.min(self.mulogvar_offlinedata, axis=0)[0])
+    #                 optimizer.step()
+    #             self.temp_belief = copy.deepcopy(best_temp_belief)
+    #             print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()),end="       \r")
+    #         return 1*self.temp_belief.detach()
+
+
     def get_belief(self, sads_array=None):
         if sads_array is None or len(sads_array)==0:
             return 1. * self.initial_belief.detach()
         else:
             sads_array = torch_from_numpy(sads_array)
+
+            # find good start point 
+            best_initial_loss = 1e10
+            best_initial_index = 0
+            for m in range(len(self.mulogvar_offlinedata)):
+                tmp_mulogvar = self.mulogvar_offlinedata[m]
+                with torch.no_grad():
+                    z = tmp_mulogvar[:self.z_dim]* torch.ones(len(sads_array), self.z_dim)
+                    saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
+                    ds_mulogvar = self.dec(saz)
+                    ds = sads_array[:, (self.sa_dim):(self.sas_dim)]
+                    loss = - log_gaussian(ds, # y
+                            ds_mulogvar[:, :self.s_dim], # mu
+                            ds_mulogvar[:, self.s_dim:] # logvar
+                            ).sum() 
+                    loss +=  kld(tmp_mulogvar[:self.z_dim],
+                                tmp_mulogvar[self.z_dim:],
+                                self.initial_belief.detach()[:self.z_dim],
+                                self.initial_belief.detach()[self.z_dim:])
+                if (best_initial_loss>loss.item()):
+                    best_initial_loss = 1 * loss.item()
+                    best_initial_index = 1 * m
+
             # self.temp_belief = torch.nn.Parameter(torch.hstack([self.temp_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
-            self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            # self.temp_belief = torch.nn.Parameter(torch.hstack([self.initial_belief[:self.z_dim], self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
+            self.temp_belief = torch.nn.Parameter(self.mulogvar_offlinedata[best_initial_index], requires_grad=True)
             # self.temp_belief = torch.nn.Parameter(torch.hstack([self.sim_z, self.mulogvar_offlinedata.mean(axis=0)[self.z_dim:]]), requires_grad=True)
             
             for _ in range(1):
                 optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
-                # optimizer = torch.optim.SGD([self.temp_belief],lr=0.01)
                 best_loss=1e10
                 best_iter = 0
                 start_time = time.time()
@@ -192,18 +261,6 @@ class baseVI:
 
                     optimizer.zero_grad()
 
-                    # maximum likelihood
-                    # tmp_sads_array = 1. * sads_array #[np.random.randint(0,len(sads_array),int(0.8*len(sads_array))),:]
-                    # z = self.temp_belief[:self.z_dim] * torch.ones(len(tmp_sads_array), self.z_dim)
-                    # saz = torch.cat([tmp_sads_array[:, :(self.sa_dim)], z], dim=1)
-                    # ds_mulogvar = self.dec(saz)
-                    # ds = tmp_sads_array[:, (self.sa_dim):(self.sas_dim)]
-                    # loss = - log_gaussian(ds, # y
-                    #            ds_mulogvar[:, :self.s_dim], # mu
-                    #            ds_mulogvar[:, self.s_dim:] # logvar
-                    #            ).sum() 
-
-                    # variational bayes
                     z = self.sample_z(self.temp_belief, 1).flatten() * torch.ones(len(sads_array), self.z_dim)
                     saz = torch.cat([sads_array[:, :(self.sa_dim)], z], dim=1)
                     ds_mulogvar = self.dec(saz)
@@ -221,9 +278,6 @@ class baseVI:
                         best_loss = loss.item()
                         best_iter = 1*i
                         best_temp_belief = copy.deepcopy(self.temp_belief)
-                        # print("update", i, self.temp_belief.data.numpy(),"loss.item() {:.3g}".format(loss.item()))
-                    # else:
-                    #     print("b", i, self.temp_belief.data)
                     if (i-best_iter)>50:
                         break
                     loss.backward()
@@ -232,6 +286,7 @@ class baseVI:
                 self.temp_belief = copy.deepcopy(best_temp_belief)
                 print("get_belief: ", self.temp_belief.data.numpy(),"iter",i,"len",len(sads_array),"compute_time {:.3g}".format(time.time()-start_time),"best_loss {:.3g}".format(best_loss),"loss.item() {:.3g}".format(loss.item()),end="       \r")
             return 1*self.temp_belief.detach()
+
 
     def get_nll(self, sads_array, z):
         with torch.no_grad():
@@ -322,9 +377,9 @@ class baseVI:
             while 1:
                 z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
                 if tmp_rolloutdata is None:
-                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
+                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=True, update_belief=update_belief)
                 else:
-                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)])
+                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=True, update_belief=update_belief)])
                 if len(tmp_rolloutdata)>(len(self.offline_data[m])*3):
                     break
             idx = np.array(range(len(tmp_rolloutdata)))
@@ -366,19 +421,19 @@ class baseVI:
         print(" ")
 
 
-    def get_sim_rollout_mdppolicy_data_randomstop(self, update_belief=False):
+    def get_sim_rollout_bamdppolicy_data_randomstop(self, update_belief=False):
         self.dec.my_np_compile()
         self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
-            print(m," ", end="")
+            print("\n",m)
             tmp_rolloutdata = None
             while 1:
                 z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
                 if tmp_rolloutdata is None:
-                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)
+                    tmp_rolloutdata = self.rollout_bamdppolicy_oneepisode_simenv(z=z, random_stop=True)
                 else:
-                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, update_belief=update_belief)])
+                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_bamdppolicy_oneepisode_simenv(z=z, random_stop=True)])
                 if len(tmp_rolloutdata)>(len(self.offline_data[m])*3):
                     break
             idx = np.array(range(len(tmp_rolloutdata)))
@@ -386,17 +441,6 @@ class baseVI:
             self.simenv_rolloutdata[m] = tmp_rolloutdata[ idx[:len(self.offline_data[m])] ]
         print(" ")
 
-
-    # def get_sim_rollout_data_randomlen(self, update_belief=False):
-    #     self.dec.my_np_compile()
-    #     self.policy_evaluate=False
-    #     self.simenv_rolloutdata = [None]*len(self.offline_data)
-    #     for m in range(len(self.offline_data)):
-    #         print(m," ", end="")
-    #         self.simenv_rolloutdata[m] = self.rollout_episode_simenv(self.mulogvar_offlinedata[m], len_data=200, random_stop=True, zmean=False, update_belief=False)
-    #     print(" ")
-
-        
 
     def get_real_rollout_mdppolicy_data(self):
         self.policy_evaluate= True
