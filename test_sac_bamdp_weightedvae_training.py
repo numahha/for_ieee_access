@@ -76,6 +76,7 @@ args_init_dict = {"offline_data": offline_data,
              "z_dim": z_dim,
 #              "policy":agent.select_action,
              "mdp_policy":None,
+             "bamdp_policy":None,
              "debug_info": None,#debug_info,
              "env" : env}
 
