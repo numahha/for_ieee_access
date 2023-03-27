@@ -172,4 +172,4 @@ for i_episode in itertools.count(1):
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("----------------------------------------")
 
-env.close()
+# env.close()

@@ -389,17 +389,17 @@ class baseVI:
 
 
     def rollout_bamdppolicy_oneepisode_simenv(self, z=None, random_stop=True):
-        state = self.reset(fix_init=True, z=z)
+        aug_state = self.reset(fix_init=True, z=z)
         done = False
         stateaction_history = []
         while True:
-            if np.abs(state).max()>1e3:
+            if np.abs(aug_state[:self.s_dim]).max()>1e3:
                 break
             with torch.no_grad():
-                action = self.bamdp_policy(state, evaluate=self.policy_evaluate)
-            stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
-            next_sb, reward, done, _ = self.step(action)
-            state = next_sb
+                action = self.bamdp_policy(aug_state, evaluate=self.policy_evaluate)
+            stateaction_history.append(np.hstack([aug_state.flatten()[:self.s_dim], action.flatten(), z]))
+            next_aug_state, reward, done, _ = self.step(action)
+            aug_state = next_aug_state
             if random_stop:
                 if np.random.rand()>self.gamma:
                     break

@@ -65,7 +65,8 @@ class CustomPendulumEnv(gym.Env):
         #th = math.atan2(o[1]/r, o[0]/r)
         th = o[0]
         thdot = o[1]
-        costs = angle_normalize(th)**2 + .1*thdot**2 + .001*(u**2)
+        # costs = angle_normalize(th)**2 + .1*thdot**2 + .001*(u**2)
+        costs = th**2 + .1*thdot**2 + .001*(u**2)
         return -np.array([costs]).reshape(1)[0]
 
 
