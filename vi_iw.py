@@ -15,18 +15,22 @@ class iwVI(baseVI):
         super().__init__(args_init_dict)
         self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)
 
-    def save(self):
-        super().save(ckpt_name="vi_iw_ckpt_basepart")
+    def save(self, ckpt_name=""):
+        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"
+        ckpt_name2 = ckpt_name+"vi_iw_ckpt"
+        super().save(ckpt_name=ckpt_name1)
         torch.save({'ratio_model_state_dict': self.ratio_model.state_dict()
-                   },"vi_iw_ckpt")
+                   },ckpt_name2)
 
-    def load(self):
+    def load(self, ckpt_name=""):
+        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"
+        ckpt_name2 = ckpt_name+"vi_iw_ckpt"
         try:
-            super().load(ckpt_name="vi_iw_ckpt_basepart")
-            print("success load vi_iw_ckpt_basepart")
+            super().load(ckpt_name=ckpt_name1)
+            print("success load", ckpt_name1)
         except:
-            print("fail load vi_iw_ckpt_basepart")
-        checkpoint = torch.load("vi_iw_ckpt")
+            print("fail load", ckpt_name1)
+        checkpoint = torch.load(ckpt_name2)
         self.ratio_model.load_state_dict(checkpoint['ratio_model_state_dict'])
 
     def load_base(self):

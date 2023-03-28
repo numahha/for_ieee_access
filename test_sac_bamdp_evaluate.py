@@ -77,6 +77,7 @@ args_init_dict = {"offline_data": offline_data,
              "z_dim": z_dim,
 #              "policy":agent.select_action,
              "mdp_policy":None,
+             "bamdp_policy":None,
              "debug_info": None,#debug_info,
              "env" : env}
 
@@ -103,7 +104,7 @@ total_numsteps = 0
 updates = 0
 
 avg_reward = 0.
-episodes = 1
+episodes = 3
 for _  in range(episodes):
     state = env.reset()
     belief = vi.get_belief()
@@ -111,6 +112,7 @@ for _  in range(episodes):
     done = False
     sads_array=np.empty((0,s_dim*2+a_dim))
     belief_array=np.empty((0,z_dim*2))
+    rew_list=[]
     while not done:
         aug_state = np.hstack([state, belief.numpy()])
         action = agent.select_action(aug_state, evaluate=True)
@@ -120,12 +122,13 @@ for _  in range(episodes):
                                 np.hstack([state, action, next_state-state])])
         belief_array = np.vstack([belief_array,belief.numpy()])
         episode_reward += reward
+        rew_list.append(reward)
 
         state = next_state
         belief = vi.get_belief(sads_array=sads_array)
 
-        # debug plot
-        if 1:
+        # debug plot nll per step
+        if 0:
             plotnum=40
             losslist=[]
             zlist=[]
@@ -139,12 +142,20 @@ for _  in range(episodes):
             plt.show()
 
     print("\nenv.get_params()",env.get_params())
-    plt.plot(sads_array[0,0],sads_array[0,1],"o")
-    plt.plot(sads_array[:,0],sads_array[:,1])
-    plt.show()
-    plt.plot(belief_array[:,0])
-    plt.show()
-
+    # debug plot per episode
+    if 1:
+        print("episode_reward",episode_reward)
+        plt.plot(sads_array[0,0],sads_array[0,1],"o")
+        plt.plot(sads_array[:,0],sads_array[:,1])
+        plt.show()
+        # plt.plot(belief_array[:,0])
+        # plt.ylabel("belief_mu")
+        # plt.xlabel("timestamp")
+        # plt.show()
+        # plt.plot(rew_list)
+        # plt.ylabel("reward")
+        # plt.xlabel("timestamp")
+        # plt.show()
     avg_reward += episode_reward
 avg_reward /= episodes
 
