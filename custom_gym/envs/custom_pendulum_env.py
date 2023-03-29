@@ -66,7 +66,7 @@ class CustomPendulumEnv(gym.Env):
         th = o[0]
         thdot = o[1]
         costs = angle_normalize(th)**2 + .1*thdot**2 + .001*(u**2)
-        # costs = th**2 + .01*thdot**2 + .001*(u**2)
+        # costs = th**2 + .01*thdot**2 + .001*(u**2) # bad even for real bamdp
         return -np.array([costs]).reshape(1)[0]
 
 
@@ -85,6 +85,7 @@ class CustomPendulumEnv(gym.Env):
 
         # self.env_param = np.array([self.m, self.c])
         # self.c=0
+        print("c =",self.c)
         return self._get_obs().astype(np.float32)
 
 

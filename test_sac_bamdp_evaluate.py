@@ -90,6 +90,7 @@ agent = SAC(env.observation_space.shape[0]+z_dim*2, env.action_space)
 # agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_standardvae_", evaluate=True)
 # vi = vi_base.baseVI(args_init_dict)
 agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_weightedvae_", evaluate=True)
+# agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_realbamdpdebug_", evaluate=True)
 vi = vi_iw.iwVI(args_init_dict)
 
 
@@ -104,9 +105,9 @@ total_numsteps = 0
 updates = 0
 
 avg_reward = 0.
-episodes = 3
+episodes = 5
 for _  in range(episodes):
-    state = env.reset()
+    state = env.reset(fix_init=True)
     belief = vi.get_belief()
     episode_reward = 0
     done = False

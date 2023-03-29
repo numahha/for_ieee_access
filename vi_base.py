@@ -4,7 +4,7 @@ import random
 import copy
 import time
 
-from utils import log_gaussian, kld, kdl_var_approx, torch_from_numpy
+from utils import log_gaussian, kld, torch_from_numpy
 from model_bamdp import Encoder, Decoder#, PenaltyModel
 
 device = torch.device('cpu')
@@ -186,7 +186,7 @@ class baseVI:
             best_initial_loss = 1e10
             best_initial_index = 0
 
-            for m in range(len(self.mulogvar_startpoints)):
+            for m in range(len(self.mulogvar_startpoints)-2):
                 tmp_mulogvar = self.mulogvar_startpoints[m]
                 with torch.no_grad():
                     z = tmp_mulogvar[:self.z_dim]* torch.ones(len(sads_array), self.z_dim)
