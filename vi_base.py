@@ -5,7 +5,7 @@ import copy
 import time
 
 from utils import log_gaussian, kld, torch_from_numpy
-from model_bamdp import Encoder, Decoder#, PenaltyModel
+from model_bamdp import Encoder, Decoder, PenaltyModel
 
 device = torch.device('cpu')
 
@@ -45,7 +45,7 @@ class baseVI:
         # self.enc_belief = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
 
         # self.lam=1e-4 # ペナルティの係数？
-        # self.penalty_model = PenaltyModel(s_dim, a_dim, z_dim) # ibisには要らない
+        self.penalty_model = PenaltyModel(s_dim, a_dim, z_dim)
         # self.train_g_m_list=None
         # self.valid_g_m_list=None
         self.initial_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
@@ -90,7 +90,8 @@ class baseVI:
         torch.save({'enc_state_dict': self.enc.state_dict(),
                     'dec_state_dict': self.dec.state_dict(),
                     'prior': self.prior,
-                    'initial_belief': self.initial_belief
+                    'initial_belief': self.initial_belief,
+                    'penalty_model_dict': self.penalty_model.state_dict(),
                     # 'enc_belief_state_dict': self.enc_belief.state_dict()
                    },ckpt_name)
 
@@ -101,6 +102,7 @@ class baseVI:
         self.prior = checkpoint['prior']
         # self.enc_belief.load_state_dict(checkpoint['enc_belief_state_dict'])
         self.initial_belief = checkpoint['initial_belief']
+        self.penalty_model.load_state_dict(checkpoint['penalty_model_dict'])
 
         if self.offline_data is not None:
             self.update_mulogvar_offlinedata()
@@ -510,7 +512,8 @@ class baseVI:
         return z
 
 
-    def _loss_train_unweighted_vae(self, m, flag=False):
+    # def _loss_train_unweighted_vae(self, m, flag=False):
+    def _loss_train_unweighted_vae(self, m):
         temp_data_m = self.offline_data[m]
         z_mulogvar = self.enc(temp_data_m[:, :(self.sas_dim)])
         z = self.sample_z(z_mulogvar, 1).flatten() * torch.ones(len(temp_data_m), self.z_dim)
@@ -549,7 +552,8 @@ class baseVI:
 
 
 
-    def _loss_train_initial_belief(self, m, flag=False):
+    # def _loss_train_initial_belief(self, m, flag=False):
+    def _loss_train_initial_belief(self, m):
         tmp_z= self.sample_z(self.mulogvar_offlinedata[m], 1)
         return - log_gaussian(tmp_z, # y
                                 self.initial_belief[:self.z_dim], # mu
@@ -562,4 +566,31 @@ class baseVI:
         loss_fn = self._loss_train_initial_belief
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
         # self.enc_belief = copy.deepcopy(self.enc)
+        return ret
+
+
+    # def _loss_train_initial_belief(self, m, flag=False):
+    def _loss_train_penalty(self, m):
+        temp_data_m = self.offline_data[m]
+        tmp_z= self.sample_z(self.mulogvar_offlinedata[m], len(temp_data_m))
+
+        saz = torch.cat([temp_data_m[:, :(self.sa_dim)], tmp_z], dim=1)
+        with torch.no_grad():
+            ds_mulogvar = self.dec(saz)
+        ds_m = temp_data_m[:, (self.sa_dim):(self.sas_dim)]
+        penalty_target = - log_gaussian(ds_m, # y
+                                        ds_mulogvar[:, :self.s_dim], # mu
+                                        ds_mulogvar[:, self.s_dim:] # logvar
+                                        )
+        sazmulogvar = torch.cat([saz, self.mulogvar_offlinedata[m]*torch.ones((len(saz),2*self.z_dim))], dim=1)
+        penalty_pred = self.penalty_model(sazmulogvar)
+
+        return (( penalty_pred - penalty_target )**2).mean()
+    
+
+    def train_penalty(self, num_iter, lr, early_stop_step):
+        
+        param_list = list(self.penalty_model.parameters())
+        loss_fn = self._loss_train_penalty
+        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
         return ret

@@ -11,8 +11,6 @@ class Encoder(torch.nn.Module):
     def __init__(self, s_dim, a_dim, z_dim):
         super(Encoder, self).__init__()
         h_dim=32
-        # self.activate_fn=torch.nn.Tanh
-        # self.activate_fn=torch.nn.SiLU
         self.activate_fn=torch.nn.ReLU
         self.z_dim = z_dim
         self.zz_dim = 2*z_dim
@@ -37,7 +35,6 @@ class Encoder(torch.nn.Module):
 
     def forward(self, data):
         x = self.net1(data)
-        # return self.net2(x.sum(0))
         mu_logvar = self.net2(x.sum(0))
         logvar = torch.clamp(mu_logvar[self.z_dim:], min=clamp_logvarmin)
         return torch.hstack([mu_logvar[:self.z_dim], logvar])
@@ -49,8 +46,6 @@ class Decoder(torch.nn.Module):
         h_dim=48 # 1layer32unitは惜しい, 2layer32unitは重み無しで学習できてしまう, 2layer16unitも惜しい, 3layer16unitはアリ
         self.s_dim=s_dim
         self.saz_dim = s_dim+a_dim+z_dim
-        # self.activate_fn=torch.nn.Tanh
-        # self.activate_fn=torch.nn.SiLU
         self.activate_fn=torch.nn.ReLU
         self.net_phat = torch.nn.Sequential(
                             torch.nn.Linear(self.saz_dim, h_dim),
@@ -117,24 +112,24 @@ class RatioModel(torch.nn.Module):
                             )
 
     def forward(self, sazg):
-        # sazg = sazg * torch.Tensor([1,1,0,0,1,0]).reshape(1,-1) # デバッグ用：行動を無視
         return torch.clamp(self.net(sazg), min=clamp_ratiomin, max=clamp_ratiomax)
 
 
-# class RatioModel2(torch.nn.Module):
-#     def __init__(self, s_dim, a_dim, z_dim ):
-#         super(RatioModel2, self).__init__()
-#         h_dim=32
-#         activate_fn=torch.nn.Tanh
-#         self.net = torch.nn.Sequential(
-#                             torch.nn.Linear(s_dim+a_dim+z_dim, h_dim),
-#                             activate_fn(),
-#                             torch.nn.Linear(h_dim, h_dim),
-#                             activate_fn(),
-#                             torch.nn.Linear(h_dim,1),
-#                             torch.nn.Softplus()
-#                             )
-#
-#     def forward(self, saz):
-#         saz = saz * torch.Tensor([1,1,0,0]).reshape(1,-1) # デバッグ用：行動を無視
-#         return torch.clamp(self.net(saz), min=clamp_ratiomin, max=clamp_ratiomax)
+
+class PenaltyModel(torch.nn.Module):
+    def __init__(self, s_dim, a_dim, z_dim ):
+        super(PenaltyModel, self).__init__()
+        h_dim=16
+        activate_fn=torch.nn.Tanh
+        self.net = torch.nn.Sequential(
+                            torch.nn.Linear(s_dim+a_dim+3*z_dim, h_dim),
+                            activate_fn(),
+                            torch.nn.Linear(h_dim, h_dim),
+                            activate_fn(),
+                            torch.nn.Linear(h_dim, h_dim),
+                            activate_fn(),
+                            torch.nn.Linear(h_dim,1)
+                            )
+
+    def forward(self, sazg):
+        return self.net(sazg)
