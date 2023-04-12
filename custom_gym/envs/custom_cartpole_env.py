@@ -191,11 +191,16 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         #         )
         #     self.steps_beyond_terminated += 1
         #     reward = 0.0
-        reward = - angle_normalize(self.state[2])**2 - 0.01*self.state[3]**2 - 0.01*self.state[0]**2
-        # reward = - angle_normalize(self.state[2])**2 - self.state[3]**2
+
+        reward = self.rew_fn(self.state, action)
 
         self.renderer.render_step()
         return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
+
+
+    def rew_fn(self, state, action):
+        costs = angle_normalize(state[2])**2 + 0.01*state[3]**2 + 0.01*state[0]**2
+        return -np.array([costs]).reshape(1)[0]
 
     def get_params(self):
         return np.array([self.masspole, self.length])
@@ -219,6 +224,9 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         super().reset(seed=seed)
         self.masspole = 0.1 + 0*0.1*np.random.rand()        
         self.length = 0.5 + 0*0.1*np.random.rand()
+        # self.masspole = 0.1 + 0.1*np.random.rand()        
+        # self.length = 0.5 + 0.1*np.random.rand()
+
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
 
