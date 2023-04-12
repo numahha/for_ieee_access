@@ -91,11 +91,11 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
-        self.total_mass = self.masspole + self.masscart
         self.length = 0.5  # actually half the pole's length
-        self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
         self.tau = 0.02  # seconds between state updates
+        self.total_mass = self.masspole + self.masscart
+        self.polemass_length = self.masspole * self.length
         self.kinematics_integrator = "euler"
 
         # Angle at which to fail the episode
@@ -114,7 +114,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             dtype=np.float32,
         )
 
-        self.action_space = spaces.Discrete(2)
+        # self.action_space = spaces.Discrete(2)
+        self.action_space = spaces.Box(low=-np.float32(self.force_mag), high=np.float32(self.force_mag), shape=(1,))
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
 
         self.render_mode = render_mode
@@ -131,10 +132,11 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
     def step(self, action):
         err_msg = f"{action!r} ({type(action)}) invalid"
-        assert self.action_space.contains(action), err_msg
+        # assert self.action_space.contains(action), err_msg
         assert self.state is not None, "Call reset before using step method."
         x, x_dot, theta, theta_dot = self.state
-        force = self.force_mag if action == 1 else -self.force_mag
+        # force = self.force_mag if action == 1 else -self.force_mag
+        force = action[0]
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
 
@@ -188,14 +190,31 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.renderer.render_step()
         return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
 
+    def get_params(self):
+        return np.array([self.masspole, self.length])
+
+    def set_params(self, masspole=None, length=None):
+        if masspole is not None:
+            self.masspole = masspole
+        if length is not None:
+            self.length = length
+        self.total_mass = self.masspole + self.masscart
+        self.polemass_length = self.masspole * self.length
+
     def reset(
         self,
         *,
         seed: Optional[int] = None,
         return_info: bool = False,
         options: Optional[dict] = None,
+        fix_init: bool = False
     ):
         super().reset(seed=seed)
+        self.masspole = 0.1 + 0.1*np.random.rand()        
+        self.length = 0.5 + 0.1*np.random.rand()
+        self.total_mass = self.masspole + self.masscart
+        self.polemass_length = self.masspole * self.length
+
         # Note that if you use custom reset bounds, it may lead to out-of-bound
         # state/observations.
         low, high = utils.maybe_parse_reset_bounds(
