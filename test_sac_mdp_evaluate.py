@@ -99,9 +99,11 @@ import matplotlib.pyplot as plt
 if args.env_name=="CustomPendulum-v0":
     plt.plot(state_history[:,0], state_history[:,1])
     plt.plot(state_history[0,0], state_history[0,1], "o")
+    plt.show()
 if args.env_name=="CustomCartPole-v0":
-    # plt.plot(state_history[:,0], state_history[:,2])
-    # plt.plot(state_history[0,0], state_history[0,2], "o")
-    plt.plot(state_history[:,2], state_history[:,3])
+    plt.plot(state_history[:,0], state_history[:,1])
+    plt.plot(state_history[0,0], state_history[0,1], "o")
+    plt.show()
+    plt.plot(state_history[:,2], state_history[:,3],"-x")
     plt.plot(state_history[0,2], state_history[0,3], "o")
-plt.show()
+    plt.show()

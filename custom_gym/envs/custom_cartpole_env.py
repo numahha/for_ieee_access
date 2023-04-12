@@ -191,7 +191,7 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         #         )
         #     self.steps_beyond_terminated += 1
         #     reward = 0.0
-        reward = - angle_normalize(self.state[2])**2 - 0.01*self.state[3]**2
+        reward = - angle_normalize(self.state[2])**2 - 0.01*self.state[3]**2 - 0.01*self.state[0]**2
         # reward = - angle_normalize(self.state[2])**2 - self.state[3]**2
 
         self.renderer.render_step()
