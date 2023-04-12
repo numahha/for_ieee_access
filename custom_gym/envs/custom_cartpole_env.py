@@ -93,10 +93,13 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.masspole = 0.1
         self.length = 0.5  # actually half the pole's length
         self.force_mag = 10.0
-        self.tau = 0.02  # seconds between state updates
+        self.mu_p = 0.01
+        # self.tau = 0.02  # seconds between state updates
+        self.tau = 0.05  # seconds between state updates
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
-        self.kinematics_integrator = "euler"
+        # self.kinematics_integrator = "euler"
+        self.kinematics_integrator = "semi-implicit euler"
 
         # Angle at which to fail the episode
         # self.theta_threshold_radians = 12 * 2 * math.pi / 360
@@ -146,7 +149,7 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         temp = (
             force + self.polemass_length * theta_dot**2 * sintheta
         ) / self.total_mass
-        thetaacc = (self.gravity * sintheta - costheta * temp) / (
+        thetaacc = (self.gravity * sintheta - costheta * temp - self.mu_p * theta_dot / self.polemass_length) / (
             self.length * (4.0 / 3.0 - self.masspole * costheta**2 / self.total_mass)
         )
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
@@ -188,8 +191,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         #         )
         #     self.steps_beyond_terminated += 1
         #     reward = 0.0
-        # reward = - angle_normalize(self.state[2])**2 - 0.1*self.state[3]**2 # - self.state[0]**2
-        reward = - angle_normalize(self.state[2])**2 - self.state[3]**2
+        reward = - angle_normalize(self.state[2])**2 - 0.01*self.state[3]**2
+        # reward = - angle_normalize(self.state[2])**2 - self.state[3]**2
 
         self.renderer.render_step()
         return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
@@ -222,7 +225,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         # Note that if you use custom reset bounds, it may lead to out-of-bound
         # state/observations.
         low, high = utils.maybe_parse_reset_bounds(
-            options, -0.05, 0.05  # default low
+            # options, -0.05, 0.05  # default low
+            options, -0.25, 0.25  # default low
         )  # default high
         self.state = self.np_random.uniform(low=low, high=high, size=(4,))
         self.state[2] += np.pi
