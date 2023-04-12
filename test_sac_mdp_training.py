@@ -10,8 +10,9 @@ from sac import SAC
 from replay_memory import ReplayMemory
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
-parser.add_argument('--env-name', default="CustomPendulum-v0",
-                    help='Mujoco Gym environment (default: HalfCheetah-v2)')
+#parser.add_argument('--env-name', default="CustomPendulum-v0",
+parser.add_argument('--env-name', default="CustomCartPole-v0",
+                    help='custom-env')
 # parser.add_argument('--policy', default="Gaussian",
 #                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
@@ -59,7 +60,11 @@ np.random.seed(args.seed)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space)
 
-agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
+# if args.env_name=="CustomPendulum-v0":
+#     agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
+# if args.env_name=="CustomCartPole-v0":
+#     agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_cartpole_", evaluate=False)
+
 #Tesnorboard
 # writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), args.env_name,
 #                                                              args.policy, "autotune" if args.automatic_entropy_tuning else ""))
@@ -132,7 +137,10 @@ for i_episode in itertools.count(1):
                 state = next_state
             avg_reward += episode_reward
         avg_reward /= episodes
-        agent.save_checkpoint(env_name="custom_pendulum")
+        if args.env_name=="CustomPendulum-v0":
+            agent.save_checkpoint(env_name="custom_pendulum")
+        if args.env_name=="CustomCartPole-v0":
+            agent.save_checkpoint(env_name="custom_cartpole")
 
 
         # writer.add_scalar('avg_reward/test', avg_reward, i_episode)

@@ -10,8 +10,9 @@ from sac import SAC
 from replay_memory import ReplayMemory
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
-parser.add_argument('--env-name', default="CustomPendulum-v0",
-                    help='Mujoco Gym environment (default: HalfCheetah-v2)')
+# parser.add_argument('--env-name', default="CustomPendulum-v0",
+parser.add_argument('--env-name', default="CustomCartPole-v0",
+                    help='custom')
 # parser.add_argument('--policy', default="Gaussian",
 #                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 # parser.add_argument('--eval', type=bool, default=True,
@@ -59,7 +60,10 @@ np.random.seed(args.seed)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space)
 
-agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=True)
+if args.env_name=="CustomPendulum-v0":
+    agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
+if args.env_name=="CustomCartPole-v0":
+    agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_cartpole_", evaluate=False)
 #Tesnorboard
 # writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), args.env_name,
 #                                                              args.policy, "autotune" if args.automatic_entropy_tuning else ""))
@@ -76,19 +80,28 @@ state_history = []
 # env.env.env.m = 10.
 
 print("env.env.env.get_params()",env.env.env.get_params())
-env.env.env.set_params(c=0.3)
+# env.env.env.set_params(c=0.3)
 print("env.env.env.get_params()",env.env.env.get_params())
 
-
+total_reward = 0
 while not done:
     state_history.append(state)
     action = agent.select_action(state)  # Sample action from policy
     next_state, reward, done, _ = env.step(action) # Step
+    total_reward += reward
     state = next_state
 
 env.close()
 
 state_history = np.array(state_history)
+print("total_reward",total_reward)
 import matplotlib.pyplot as plt
-plt.plot(state_history[:,0], state_history[:,1])
+if args.env_name=="CustomPendulum-v0":
+    plt.plot(state_history[:,0], state_history[:,1])
+    plt.plot(state_history[0,0], state_history[0,1], "o")
+if args.env_name=="CustomCartPole-v0":
+    # plt.plot(state_history[:,0], state_history[:,2])
+    # plt.plot(state_history[0,0], state_history[0,2], "o")
+    plt.plot(state_history[:,2], state_history[:,3])
+    plt.plot(state_history[0,2], state_history[0,3], "o")
 plt.show()

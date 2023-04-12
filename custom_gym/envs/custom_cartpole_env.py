@@ -99,7 +99,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.kinematics_integrator = "euler"
 
         # Angle at which to fail the episode
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        # self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        self.theta_threshold_radians = 2 * math.pi
         self.x_threshold = 2.4
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
@@ -163,29 +164,32 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
         self.state = (x, x_dot, theta, theta_dot)
 
-        terminated = bool(
-            x < -self.x_threshold
-            or x > self.x_threshold
-            or theta < -self.theta_threshold_radians
-            or theta > self.theta_threshold_radians
-        )
+        # terminated = bool(
+        #     x < -self.x_threshold
+        #     or x > self.x_threshold
+        #     or theta < -self.theta_threshold_radians
+        #     or theta > self.theta_threshold_radians
+        # )
+        terminated = False
 
-        if not terminated:
-            reward = 1.0
-        elif self.steps_beyond_terminated is None:
-            # Pole just fell!
-            self.steps_beyond_terminated = 0
-            reward = 1.0
-        else:
-            if self.steps_beyond_terminated == 0:
-                logger.warn(
-                    "You are calling 'step()' even though this "
-                    "environment has already returned terminated = True. You "
-                    "should always call 'reset()' once you receive 'terminated = "
-                    "True' -- any further steps are undefined behavior."
-                )
-            self.steps_beyond_terminated += 1
-            reward = 0.0
+        # if not terminated:
+        #     reward = 1.0
+        # elif self.steps_beyond_terminated is None:
+        #     # Pole just fell!
+        #     self.steps_beyond_terminated = 0
+        #     reward = 1.0
+        # else:
+        #     if self.steps_beyond_terminated == 0:
+        #         logger.warn(
+        #             "You are calling 'step()' even though this "
+        #             "environment has already returned terminated = True. You "
+        #             "should always call 'reset()' once you receive 'terminated = "
+        #             "True' -- any further steps are undefined behavior."
+        #         )
+        #     self.steps_beyond_terminated += 1
+        #     reward = 0.0
+        # reward = - angle_normalize(self.state[2])**2 - 0.1*self.state[3]**2 # - self.state[0]**2
+        reward = - angle_normalize(self.state[2])**2 - self.state[3]**2
 
         self.renderer.render_step()
         return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
@@ -210,8 +214,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         fix_init: bool = False
     ):
         super().reset(seed=seed)
-        self.masspole = 0.1 + 0.1*np.random.rand()        
-        self.length = 0.5 + 0.1*np.random.rand()
+        self.masspole = 0.1 + 0*0.1*np.random.rand()        
+        self.length = 0.5 + 0*0.1*np.random.rand()
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
 
@@ -221,6 +225,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             options, -0.05, 0.05  # default low
         )  # default high
         self.state = self.np_random.uniform(low=low, high=high, size=(4,))
+        self.state[2] += np.pi
+        # print("init_state", self.state)
         self.steps_beyond_terminated = None
         self.renderer.reset()
         self.renderer.render_step()
@@ -332,3 +338,6 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
+            
+def angle_normalize(th):
+    return (((th+np.pi) % (2*np.pi)) - np.pi)
