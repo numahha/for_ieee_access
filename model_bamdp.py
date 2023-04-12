@@ -96,7 +96,8 @@ class Decoder(torch.nn.Module):
 class RatioModel(torch.nn.Module):
     def __init__(self, s_dim, a_dim, z_dim ):
         super(RatioModel, self).__init__()
-        h_dim=16
+        # h_dim=16
+        h_dim=32
         activate_fn=torch.nn.Tanh
         self.net = torch.nn.Sequential(
                             torch.nn.Linear(s_dim+a_dim+2*z_dim, h_dim),
