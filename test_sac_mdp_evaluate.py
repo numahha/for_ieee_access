@@ -3,6 +3,7 @@ import datetime
 import gym
 import custom_gym
 import numpy as np
+import random
 import itertools
 import torch
 from sac import SAC
@@ -48,14 +49,19 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
 #                     help='run on CUDA (default: False)')
 args = parser.parse_args()
 
+
+# seed = args.seed
+seed = 0
+
 # Environment
 # env = NormalizedActions(gym.make(args.env_name))
 env = gym.make(args.env_name)
-env.seed(args.seed)
-env.action_space.seed(args.seed)
+env.seed(seed)
+env.action_space.seed(seed)
+random.seed(seed)
 
-torch.manual_seed(args.seed)
-np.random.seed(args.seed)
+torch.manual_seed(seed)
+np.random.seed(seed)
 
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space)
