@@ -20,6 +20,7 @@ class baseVI:
         self.mdp_policy = args_init_dict["mdp_policy"]
         self.bamdp_policy = args_init_dict["bamdp_policy"]
         debug_info = args_init_dict["debug_info"]
+        self.ckpt_suffix = args_init_dict["ckpt_suffix"]
 
         train_valid_ratio = 0.2
         self.valid_ave_num=1 # validlossを計算するためのサンプル数
@@ -86,7 +87,11 @@ class baseVI:
         # self.enc_belief = copy.deepcopy(self.enc_belief_store)         # q(z|D^train_m)
 
 
-    def save(self, ckpt_name="vi_base_ckpt"):
+    # def save(self, ckpt_name="vi_base_ckpt"):
+    def save(self, ckpt_name=None):
+        if ckpt_name is None:
+            # ckpt_name="vi_base_ckpt"
+            ckpt_name="vi_base_ckpt"+self.ckpt_suffix
         torch.save({'enc_state_dict': self.enc.state_dict(),
                     'dec_state_dict': self.dec.state_dict(),
                     'prior': self.prior,
@@ -95,7 +100,10 @@ class baseVI:
                     # 'enc_belief_state_dict': self.enc_belief.state_dict()
                    },ckpt_name)
 
-    def load(self, ckpt_name="vi_base_ckpt"):
+    # def load(self, ckpt_name="vi_base_ckpt"):
+    def load(self, ckpt_name=None):
+        if ckpt_name is None:
+            ckpt_name="vi_base_ckpt"+self.ckpt_suffix
         checkpoint = torch.load(ckpt_name)
         self.enc.load_state_dict(checkpoint['enc_state_dict'])
         self.dec.load_state_dict(checkpoint['dec_state_dict'])
@@ -425,13 +433,13 @@ class baseVI:
 
     def train_unweighted_vae(self, num_iter, lr, early_stop_step, flag=1):
         if flag==1:
-            print("train_weighted_vae: enc_dec")
+            print("train_vae: enc_dec")
             param_list = list(self.enc.parameters())+list(self.dec.parameters())
         elif flag==2:
-            print("train_weighted_vae: enc")
+            print("train_vae: enc")
             param_list = list(self.enc.parameters())
         elif flag==3:
-            print("train_weighted_vae: dec")
+            print("train_vae: dec")
             param_list = list(self.dec.parameters())
         else:
             return [], []
