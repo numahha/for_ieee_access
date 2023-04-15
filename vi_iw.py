@@ -16,15 +16,17 @@ class iwVI(baseVI):
         self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)
 
     def save(self, ckpt_name=""):
-        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"
-        ckpt_name2 = ckpt_name+"vi_iw_ckpt"
+        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"+"_"+self.ckpt_suffix
+        ckpt_name2 = ckpt_name+"vi_iw_ckpt"+"_"+self.ckpt_suffix
+        print("iwvi save ckpt1, ckpt2",ckpt_name1 ,ckpt_name2 )
         super().save(ckpt_name=ckpt_name1)
         torch.save({'ratio_model_state_dict': self.ratio_model.state_dict()
                    },ckpt_name2)
 
     def load(self, ckpt_name=""):
-        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"
-        ckpt_name2 = ckpt_name+"vi_iw_ckpt"
+        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"+"_"+self.ckpt_suffix
+        ckpt_name2 = ckpt_name+"vi_iw_ckpt"+"_"+self.ckpt_suffix
+        print("iwvi load ckpt1, ckpt2",ckpt_name1 ,ckpt_name2 )
         try:
             super().load(ckpt_name=ckpt_name1)
             print("success load", ckpt_name1)

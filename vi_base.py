@@ -90,8 +90,9 @@ class baseVI:
     # def save(self, ckpt_name="vi_base_ckpt"):
     def save(self, ckpt_name=None):
         if ckpt_name is None:
-            # ckpt_name="vi_base_ckpt"
-            ckpt_name="vi_base_ckpt"+self.ckpt_suffix
+            ckpt_name="vi_base_ckpt"
+        ckpt_name += "_"+self.ckpt_suffix
+        print("base save ckpt", ckpt_name)
         torch.save({'enc_state_dict': self.enc.state_dict(),
                     'dec_state_dict': self.dec.state_dict(),
                     'prior': self.prior,
@@ -103,7 +104,9 @@ class baseVI:
     # def load(self, ckpt_name="vi_base_ckpt"):
     def load(self, ckpt_name=None):
         if ckpt_name is None:
-            ckpt_name="vi_base_ckpt"+self.ckpt_suffix
+            ckpt_name="vi_base_ckpt"
+        ckpt_name += "_"+self.ckpt_suffix
+        print("base load ckpt", ckpt_name)
         checkpoint = torch.load(ckpt_name)
         self.enc.load_state_dict(checkpoint['enc_state_dict'])
         self.dec.load_state_dict(checkpoint['dec_state_dict'])
@@ -114,7 +117,6 @@ class baseVI:
 
         if self.offline_data is not None:
             self.update_mulogvar_offlinedata()
-        print("load", ckpt_name)
         self.dec.my_np_compile()
 
 
