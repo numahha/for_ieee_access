@@ -13,6 +13,8 @@ from replay_memory import ReplayMemory
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="CustomPendulum-v0",
                     help='Mujoco Gym environment (default: HalfCheetah-v2)')
+env_str="pendulum"
+
 # parser.add_argument('--policy', default="Gaussian",
 #                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
@@ -78,7 +80,9 @@ args_init_dict = {"offline_data": offline_data,
              "mdp_policy":None,
              "bamdp_policy":None,
              "debug_info": None,#debug_info,
-             "env" : env}
+             "env" : env,
+            "ckpt_suffix" : env_str
+             }
 
 vi = vi_iw.iwVI(args_init_dict)
 
