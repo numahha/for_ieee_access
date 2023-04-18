@@ -5,7 +5,7 @@ import torch
 import pickle
 
 
-def getOfflineData(env_name, episode_num):
+def getOfflineData(env_name, episode_num, seed):
 
     if env_name=='CustomPendulum-v0':
         env_suffix="pendulum"
@@ -13,6 +13,8 @@ def getOfflineData(env_name, episode_num):
         env_suffix="cartpole"
 
     env = gym.make(env_name)
+    env.seed(seed)
+    env.action_space.seed(seed)
     def random_rollout():
         transition_data = []
         o = env.reset()
