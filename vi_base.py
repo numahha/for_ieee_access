@@ -168,8 +168,11 @@ class baseVI:
         done = False
         if self.sim_timestep>=(self._max_episode_steps-1):
             done=True
-        if np.abs(self.sim_s).max()>100:
-            print("predict diverge",self.sim_s)
+
+        s_limit = 100.
+        if np.abs(self.sim_s).max()>s_limit:
+            print("predict diverge", self.sim_s, "sim_timestep", self.sim_timestep)
+            self.sim_s = np.clip(self.sim_s, -s_limit, s_limit)
             done = True
         self.sim_timestep+=1
 
@@ -217,7 +220,7 @@ class baseVI:
             
             for _ in range(1):
                 optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
-                best_loss=1e10
+                best_loss=np.inf#1e10
                 best_iter = 0
                 start_time = time.time()
                 for i in range(5000):

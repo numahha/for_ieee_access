@@ -5,33 +5,16 @@ import custom_gym
 import numpy as np
 import itertools
 import torch
-import random
 from sac import SAC
 # from torch.utils.tensorboard import SummaryWriter
 from replay_memory import ReplayMemory
+import random
+from config import cfg_seed, cfg_env, cfg_z_dim
+
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
-parser.add_argument('--env-name', default="CustomPendulum-v0",
-                    help='Mujoco Gym environment (default: HalfCheetah-v2)')
-env_str="pendulum"
-
-# parser.add_argument('--policy', default="Gaussian",
-#                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
-# parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
-#                     help='discount factor for reward (default: 0.99)')
-# parser.add_argument('--tau', type=float, default=0.005, metavar='G',
-#                     help='target smoothing coefficient(τ) (default: 0.005)')
-# parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
-#                     help='learning rate (default: 0.0003)')
-# parser.add_argument('--alpha', type=float, default=0.2, metavar='G',
-#                     help='Temperature parameter α determines the relative importance of the entropy\
-#                             term against the reward (default: 0.2)')
-# parser.add_argument('--automatic_entropy_tuning', type=bool, default=False, metavar='G',
-#                     help='Automaically adjust α (default: False)')
-parser.add_argument('--seed', type=int, default=123456, metavar='N',
-                    help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
 # parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
@@ -52,15 +35,25 @@ parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
 #                     help='run on CUDA (default: False)')
 args = parser.parse_args()
 
+
+env_str=cfg_env
+seed = cfg_seed
+
+if cfg_env == "pendulum":
+    env_name = "CustomPendulum-v0"
+if cfg_env == "cartpole":
+    env_name = "CustomCartPole-v0"
+
+
 # Environment
 # env = NormalizedActions(gym.make(args.env_name))
-env = gym.make(args.env_name)
-env.seed(args.seed)
-env.action_space.seed(args.seed)
+env = gym.make(env_name)
+env.seed(seed)
+env.action_space.seed(seed)
 
-torch.manual_seed(args.seed)
-np.random.seed(args.seed)
-random.seed(args.seed)
+torch.manual_seed(seed)
+np.random.seed(seed)
+random.seed(seed)
 
 
 import vi_iw
@@ -68,9 +61,9 @@ import vi_iw
 import pickle
 s_dim = env.reset().flatten().shape[0]
 a_dim = env.action_space.sample().flatten().shape[0]
-z_dim = 1
-offline_data = pickle.load(open("offline_data.pkl","rb"))
-debug_info = pickle.load(open("offline_data_debug_info.pkl","rb"))
+z_dim = cfg_z_dim
+offline_data = pickle.load(open("offline_data_"+env_str+".pkl","rb"))
+debug_info = pickle.load(open("offline_data_debug_info_"+env_str+".pkl","rb"))
 debug_info = np.array(debug_info)
 args_init_dict = {"offline_data": offline_data,
              "s_dim": s_dim,
@@ -99,7 +92,7 @@ agent = SAC(env.observation_space.shape[0]+z_dim*2, env.action_space)
 #                                                              args.policy, "autotune" if args.automatic_entropy_tuning else ""))
 
 # Memory
-memory = ReplayMemory(args.replay_size, args.seed)
+memory = ReplayMemory(args.replay_size, seed)
 
 # Training Loop
 total_numsteps = 0
@@ -167,7 +160,7 @@ for i_episode in itertools.count(1):
                 state = next_state
             avg_reward += episode_reward
         avg_reward /= episodes
-        agent.save_checkpoint(env_name="custom_pendulum_bamdp_weightedvae")
+        agent.save_checkpoint(env_name="custom_"+env_str+"_bamdp_weightedvae")
 
 
         # writer.add_scalar('avg_reward/test', avg_reward, i_episode)
