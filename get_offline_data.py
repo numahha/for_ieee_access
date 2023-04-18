@@ -7,6 +7,11 @@ import pickle
 
 def getOfflineData(env_name, episode_num):
 
+    if env_name=='CustomPendulum-v0':
+        env_suffix="pendulum"
+    if env_name=='CustomCartPole-v0':
+        env_suffix="cartpole"
+
     env = gym.make(env_name)
     def random_rollout():
         transition_data = []
@@ -31,10 +36,10 @@ def getOfflineData(env_name, episode_num):
         offline_data.append(transition_data)
         debug_info.append(real_env_param)
 
-    f = open('offline_data.pkl', 'wb')
+    f = open('offline_data_'+env_suffix+'.pkl', 'wb')
     pickle.dump(offline_data, f)
     f.close()
 
-    f2 = open('offline_data_debug_info.pkl', 'wb')
+    f2 = open('offline_data_debug_info_'+env_suffix+'.pkl', 'wb')
     pickle.dump(debug_info, f2)
     f2.close()

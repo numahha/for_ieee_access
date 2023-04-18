@@ -43,7 +43,6 @@ class baseVI:
         self.enc = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
         self.dec = Decoder(self.s_dim, self.a_dim, self.z_dim)         # p(ds|s,a,z)
         self.prior = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=False)  # [mean, logvar] for VAE training
-        # self.enc_belief = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
 
         # self.lam=1e-4 # ペナルティの係数？
         self.penalty_model = PenaltyModel(s_dim, a_dim, z_dim)
@@ -71,47 +70,42 @@ class baseVI:
     # def reset_encdec(self):
     #     self.enc = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
     #     self.dec = Decoder(self.s_dim, self.a_dim, self.z_dim)         # p(ds|s,a,z)
-    #     self.enc_belief = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
 
 
     def store_encdec(self):
         self.enc_store = copy.deepcopy(self.enc)         # q(z|D^train_m)
         self.dec_store = copy.deepcopy(self.dec)         # p(ds|s,a,z)
-        # self.enc_belief_store = copy.deepcopy(self.enc_belief)         # q(z|D^train_m)
 
 
     def restore_encdec(self):
         self.enc = copy.deepcopy(self.enc_store)         # q(z|D^train_m)
         self.dec = copy.deepcopy(self.dec_store)         # p(ds|s,a,z)
         self.dec.my_np_compile()
-        # self.enc_belief = copy.deepcopy(self.enc_belief_store)         # q(z|D^train_m)
 
 
-    # def save(self, ckpt_name="vi_base_ckpt"):
-    def save(self, ckpt_name=None):
-        if ckpt_name is None:
-            ckpt_name="vi_base_ckpt"
-        ckpt_name += "_"+self.ckpt_suffix
+    def save(self, ckpt_key="unweighted"):
+        # if ckpt_name is None:
+        #     ckpt_name="vi_base_ckpt"
+        # ckpt_name += "_"+self.ckpt_suffix
+        ckpt_name = "ckpt_basevi_"+self.ckpt_suffix+"_"+ckpt_key
         print("base save ckpt", ckpt_name)
         torch.save({'enc_state_dict': self.enc.state_dict(),
                     'dec_state_dict': self.dec.state_dict(),
                     'prior': self.prior,
                     'initial_belief': self.initial_belief,
                     'penalty_model_dict': self.penalty_model.state_dict(),
-                    # 'enc_belief_state_dict': self.enc_belief.state_dict()
                    },ckpt_name)
 
-    # def load(self, ckpt_name="vi_base_ckpt"):
-    def load(self, ckpt_name=None):
-        if ckpt_name is None:
-            ckpt_name="vi_base_ckpt"
-        ckpt_name += "_"+self.ckpt_suffix
+    def load(self, ckpt_key="unweighted"):
+        # if ckpt_name is None:
+        #     ckpt_name="vi_base_ckpt"
+        # ckpt_name += "_"+self.ckpt_suffix
+        ckpt_name = "ckpt_basevi_"+self.ckpt_suffix+"_"+ckpt_key
         print("base load ckpt", ckpt_name)
         checkpoint = torch.load(ckpt_name)
         self.enc.load_state_dict(checkpoint['enc_state_dict'])
         self.dec.load_state_dict(checkpoint['dec_state_dict'])
         self.prior = checkpoint['prior']
-        # self.enc_belief.load_state_dict(checkpoint['enc_belief_state_dict'])
         self.initial_belief = checkpoint['initial_belief']
         self.penalty_model.load_state_dict(checkpoint['penalty_model_dict'])
 
@@ -124,7 +118,8 @@ class baseVI:
         self.sim_timestep=0
         if z is None:
             std = torch.exp(0.5 * self.initial_belief[self.z_dim:])
-            eps = torch.randn_like(std)
+            # eps = torch.randn_like(std)
+            eps = np.random.randn(len(std))
             self.sim_z = (eps*std+self.initial_belief[:self.z_dim]).detach().flatten()
             # print("self.initial_belief",self.initial_belief.data, "self.sim_z",self.sim_z)
         else:
@@ -143,7 +138,8 @@ class baseVI:
         m = np.random.randint(len(self.mulogvar_offlinedata))
         mulogvar = self.mulogvar_offlinedata[m]
         std = torch.exp(0.5 * mulogvar[self.z_dim:])
-        eps = torch.randn_like(std)
+        # eps = torch.randn_like(std)
+        eps = np.random.randn(len(std))
         self.sim_z = (eps*std+mulogvar[:self.z_dim]).detach().flatten()
         # print("mulogvar",mulogvar, "self.sim_z",self.sim_z)
         self.sim_s = self.init_state_fn(fix_init=False).flatten()
@@ -159,8 +155,8 @@ class baseVI:
         saz = np.hstack([self.sim_s, a, self.sim_z]).reshape(1,-1)
         ds_mulogvar = self.dec.my_np_forward(saz).flatten()
         ds_mu = ds_mulogvar[:self.s_dim]
-        eps = np.random.randn(len(ds_mu)) #* 0. # デバッグ：確定的システムにするなら0をかける
         std = np.exp(0.5 * ds_mulogvar[self.s_dim:])
+        eps = np.random.randn(len(ds_mu)) #* 0. # デバッグ：確定的システムにするなら0をかける
         ds = (eps*std+ds_mu)
         # print("ds",ds,"ds_mu",ds_mu,"std*eps",std*eps)
         rew = self.rew_fn(self.sim_s, a)
@@ -512,7 +508,8 @@ class baseVI:
     def sample_z(self, z_mulogvar, datanum):
         # # reparametrization trick type A
         std = torch.exp(0.5 * z_mulogvar[self.z_dim:])
-        eps = torch.randn(self.z_dim)
+        # eps = torch.randn(self.z_dim)
+        eps = torch.Tensor(np.random.randn(self.z_dim))
         z = (eps*std+z_mulogvar[:self.z_dim]) * torch.ones(datanum, self.z_dim)
 
         # reparametrization trick type B
@@ -575,7 +572,6 @@ class baseVI:
         param_list = [self.initial_belief]
         loss_fn = self._loss_train_initial_belief
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
-        # self.enc_belief = copy.deepcopy(self.enc)
         return ret
 
 
