@@ -15,20 +15,20 @@ class iwVI(baseVI):
         super().__init__(args_init_dict)
         self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)
 
-    def save(self, ckpt_name=""):
-        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"+"_"+self.ckpt_suffix
-        ckpt_name2 = ckpt_name+"vi_iw_ckpt"+"_"+self.ckpt_suffix
+    def save(self, ckpt_key):
+        ckpt_name1 = "ckpt_iwvi_basepart"+self.ckpt_suffix+"_"+ckpt_key
+        ckpt_name2 = "ckpt_iwvi_"+self.ckpt_suffix+"_"+ckpt_key
         print("iwvi save ckpt1, ckpt2",ckpt_name1 ,ckpt_name2 )
-        super().save(ckpt_name=ckpt_name1)
+        super().save(ckpt_key=ckpt_key)
         torch.save({'ratio_model_state_dict': self.ratio_model.state_dict()
                    },ckpt_name2)
 
-    def load(self, ckpt_name=""):
-        ckpt_name1 = ckpt_name+"vi_iw_ckpt_basepart"+"_"+self.ckpt_suffix
-        ckpt_name2 = ckpt_name+"vi_iw_ckpt"+"_"+self.ckpt_suffix
+    def load(self, ckpt_key):
+        ckpt_name1 = "ckpt_iwvi_basepart"+self.ckpt_suffix+"_"+ckpt_key
+        ckpt_name2 = "ckpt_iwvi_"+self.ckpt_suffix+"_"+ckpt_key
         print("iwvi load ckpt1, ckpt2",ckpt_name1 ,ckpt_name2 )
         try:
-            super().load(ckpt_name=ckpt_name1)
+            super().load(ckpt_key=ckpt_key)
             print("success load", ckpt_name1)
         except:
             print("fail load", ckpt_name1)
