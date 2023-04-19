@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 # Environment
 seed = cfg_seed
-
+env_str = cfg_env
 if cfg_env == "pendulum":
     env_name = "CustomPendulum-v0"
 if cfg_env == "cartpole":
@@ -32,13 +32,7 @@ env.action_space.seed(seed)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space)
 
-if env_name=="CustomPendulum-v0":
-    agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
-if env_name=="CustomCartPole-v0":
-    agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_cartpole_", evaluate=False)
-#Tesnorboard
-# writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), args.env_name,
-#                                                              args.policy, "autotune" if args.automatic_entropy_tuning else ""))
+agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_"+env_str+"_", evaluate=False)
 
 # Training Loop
 total_numsteps = 0

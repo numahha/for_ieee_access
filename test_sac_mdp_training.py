@@ -28,7 +28,7 @@ args = parser.parse_args()
 
 
 seed = cfg_seed
-
+env_str = cfg_env
 if cfg_env == "pendulum":
     env_name = "CustomPendulum-v0"
 if cfg_env == "cartpole":
@@ -46,14 +46,6 @@ torch.manual_seed(seed)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space)
 
-# if args.env_name=="CustomPendulum-v0":
-#     agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
-# if args.env_name=="CustomCartPole-v0":
-#     agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_cartpole_", evaluate=False)
-
-#Tesnorboard
-# writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), args.env_name,
-#                                                              args.policy, "autotune" if args.automatic_entropy_tuning else ""))
 
 # Memory
 memory = ReplayMemory(args.replay_size, seed)
@@ -80,11 +72,6 @@ for i_episode in itertools.count(1):
                 # Update parameters of all the networks
                 critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates)
 
-                # writer.add_scalar('loss/critic_1', critic_1_loss, updates)
-                # writer.add_scalar('loss/critic_2', critic_2_loss, updates)
-                # writer.add_scalar('loss/policy', policy_loss, updates)
-                # writer.add_scalar('loss/entropy_loss', ent_loss, updates)
-                # writer.add_scalar('entropy_temprature/alpha', alpha, updates)
                 updates += 1
 
         next_state, reward, done, _ = env.step(action) # Step
@@ -103,7 +90,6 @@ for i_episode in itertools.count(1):
     if total_numsteps > args.num_steps:
         break
 
-    # writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
     if i_episode % 10 == 0 and args.eval is True:
@@ -123,13 +109,7 @@ for i_episode in itertools.count(1):
                 state = next_state
             avg_reward += episode_reward
         avg_reward /= episodes
-        if env_name=="CustomPendulum-v0":
-            agent.save_checkpoint(env_name="custom_pendulum")
-        if env_name=="CustomCartPole-v0":
-            agent.save_checkpoint(env_name="custom_cartpole")
-
-
-        # writer.add_scalar('avg_reward/test', avg_reward, i_episode)
+        agent.save_checkpoint(env_name="custom_"+env_str)
 
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))

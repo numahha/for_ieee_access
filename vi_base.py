@@ -194,7 +194,7 @@ class baseVI:
 
             # find good start point
             self.mulogvar_startpoints[-2] = 1. * self.initial_belief.detach()
-            best_initial_loss = 1e10
+            best_initial_loss = np.inf
             best_initial_index = 0
 
             for m in range(len(self.mulogvar_startpoints)-2):
@@ -209,18 +209,19 @@ class baseVI:
                             ds_mulogvar[:, self.s_dim:] # logvar
                             ).sum() 
                     loss +=  kld(tmp_mulogvar[:self.z_dim],
-                                tmp_mulogvar[self.z_dim:],
-                                self.initial_belief.detach()[:self.z_dim],
-                                self.initial_belief.detach()[self.z_dim:])
+                                 tmp_mulogvar[self.z_dim:],
+                                 self.initial_belief.detach()[:self.z_dim],
+                                 self.initial_belief.detach()[self.z_dim:])
                 if (best_initial_loss>loss.item()):
                     best_initial_loss = 1 * loss.item()
                     best_initial_index = 1 * m
 
             self.temp_belief = torch.nn.Parameter(self.mulogvar_startpoints[best_initial_index], requires_grad=True)
+            best_temp_belief = copy.deepcopy(self.temp_belief)
             
             for _ in range(1):
                 optimizer = torch.optim.Adam([self.temp_belief], lr=2e-3)
-                best_loss=np.inf#1e10
+                best_loss=np.inf
                 best_iter = 0
                 start_time = time.time()
                 for i in range(5000):
@@ -458,7 +459,7 @@ class baseVI:
         total_idx_list = np.array( range(len(self.offline_data)) )
         train_idx_list = copy.deepcopy(total_idx_list)[self.validdata_num:]
         valid_idx_list = copy.deepcopy(total_idx_list)[:self.validdata_num]
-        best_valid_loss = 1e10
+        best_valid_loss = np.inf
         best_valid_iter = 0
 
         train_curve = []

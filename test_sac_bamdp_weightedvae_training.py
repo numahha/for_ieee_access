@@ -17,7 +17,6 @@ parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-# parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
 parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 # parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
@@ -69,7 +68,6 @@ args_init_dict = {"offline_data": offline_data,
              "s_dim": s_dim,
              "a_dim": a_dim,
              "z_dim": z_dim,
-#              "policy":agent.select_action,
              "mdp_policy":None,
              "bamdp_policy":None,
              "debug_info": None,#debug_info,
@@ -79,7 +77,7 @@ args_init_dict = {"offline_data": offline_data,
 
 vi = vi_iw.iwVI(args_init_dict)
 
-vi.load()
+vi.load("policy_optimization_iter1")
 
 env = vi
 
@@ -88,8 +86,6 @@ agent = SAC(env.observation_space.shape[0]+z_dim*2, env.action_space)
 
 # agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
 #Tesnorboard
-# writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), args.env_name,
-#                                                              args.policy, "autotune" if args.automatic_entropy_tuning else ""))
 
 # Memory
 memory = ReplayMemory(args.replay_size, seed)
@@ -116,11 +112,6 @@ for i_episode in itertools.count(1):
                 # Update parameters of all the networks
                 critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates)
 
-                # writer.add_scalar('loss/critic_1', critic_1_loss, updates)
-                # writer.add_scalar('loss/critic_2', critic_2_loss, updates)
-                # writer.add_scalar('loss/policy', policy_loss, updates)
-                # writer.add_scalar('loss/entropy_loss', ent_loss, updates)
-                # writer.add_scalar('entropy_temprature/alpha', alpha, updates)
                 updates += 1
 
         next_state, reward, done, _ = env.step(action) # Step
@@ -139,7 +130,6 @@ for i_episode in itertools.count(1):
     if total_numsteps > args.num_steps:
         break
 
-    # writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
     if i_episode % 10 == 0 and args.eval is True:
@@ -162,8 +152,6 @@ for i_episode in itertools.count(1):
         avg_reward /= episodes
         agent.save_checkpoint(env_name="custom_"+env_str+"_bamdp_weightedvae")
 
-
-        # writer.add_scalar('avg_reward/test', avg_reward, i_episode)
 
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
