@@ -35,8 +35,8 @@ class iwVI(baseVI):
         checkpoint = torch.load(ckpt_name2)
         self.ratio_model.load_state_dict(checkpoint['ratio_model_state_dict'])
 
-    def load_base(self):
-        super().load()
+    def load_base(self, ckpt_key="unweighted"):
+        super().load(ckpt_key=ckpt_key)
 
 
     def train_ratio(self, num_iter, lr, early_stop_step, policy):
@@ -58,20 +58,22 @@ class iwVI(baseVI):
                 de_output_data = self.ratio_model(de_input_data)
                 self.offlinedata_weight[m] = de_output_data.clone()
                 self.offlinedata_weight_sum[m] = self.offlinedata_weight[m].sum().numpy()
+
         return ret
 
     def train_weighted_vae(self, num_iter, lr, early_stop_step, weight_alpha, flag=1):
 
         self.weight_alpha = weight_alpha
+        print("weight_alpha", self.weight_alpha)
         if flag==1:
             print("train_weighted_vae: enc_dec")
             param_list = list(self.enc.parameters())+list(self.dec.parameters())
-        elif flag==2:
-            print("train_weighted_vae: enc")
-            param_list = list(self.enc.parameters())
-        elif flag==3:
-            print("train_weighted_vae: dec")
-            param_list = list(self.dec.parameters())
+        # elif flag==2:
+        #     print("train_weighted_vae: enc")
+        #     param_list = list(self.enc.parameters())
+        # elif flag==3:
+        #     print("train_weighted_vae: dec")
+        #     param_list = list(self.dec.parameters())
         else:
             return [], []
         loss_fn = self._loss_train_weighted_vae

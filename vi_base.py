@@ -94,7 +94,8 @@ class baseVI:
                     'prior': self.prior,
                     'initial_belief': self.initial_belief,
                     'penalty_model_dict': self.penalty_model.state_dict(),
-                   },ckpt_name)
+                   }, ckpt_name)
+        print("base save", self.initial_belief.data.sum())
 
     def load(self, ckpt_key="unweighted"):
         # if ckpt_name is None:
@@ -109,8 +110,8 @@ class baseVI:
         self.initial_belief = checkpoint['initial_belief']
         self.penalty_model.load_state_dict(checkpoint['penalty_model_dict'])
 
-        if self.offline_data is not None:
-            self.update_mulogvar_offlinedata()
+        print("base load", self.initial_belief.data.sum())
+        self.update_mulogvar_offlinedata()
         self.dec.my_np_compile()
 
 
@@ -197,7 +198,8 @@ class baseVI:
             best_initial_loss = np.inf
             best_initial_index = 0
 
-            for m in range(len(self.mulogvar_startpoints)-2):
+            # for m in range(len(self.mulogvar_startpoints)-2):
+            for m in range(len(self.mulogvar_startpoints)):
                 tmp_mulogvar = self.mulogvar_startpoints[m]
                 with torch.no_grad():
                     z = tmp_mulogvar[:self.z_dim]* torch.ones(len(sads_array), self.z_dim)
