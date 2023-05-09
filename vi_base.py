@@ -121,8 +121,8 @@ class baseVI:
         self.sim_timestep=0
         if z is None:
             std = torch.exp(0.5 * self.initial_belief[self.z_dim:])
-            # eps = torch.randn_like(std)
-            eps = np.random.randn(len(std))
+            eps = torch.randn_like(std)
+            # eps = np.random.randn(len(std))
             self.sim_z = (eps*std+self.initial_belief[:self.z_dim]).detach().flatten()
             # print("self.initial_belief",self.initial_belief.data, "self.sim_z",self.sim_z)
         else:
@@ -141,8 +141,9 @@ class baseVI:
         m = np.random.randint(len(self.mulogvar_offlinedata))
         mulogvar = self.mulogvar_offlinedata[m]
         std = torch.exp(0.5 * mulogvar[self.z_dim:])
-        # eps = torch.randn_like(std)
-        eps = np.random.randn(len(std))
+        eps = torch.randn_like(std)
+        # eps = np.random.randn(len(std))
+        print(eps, std, mulogvar[:self.z_dim])
         self.sim_z = (eps*std+mulogvar[:self.z_dim]).detach().flatten()
         # print("mulogvar",mulogvar, "self.sim_z",self.sim_z)
         self.sim_s = self.init_state_fn(fix_init=False).flatten()

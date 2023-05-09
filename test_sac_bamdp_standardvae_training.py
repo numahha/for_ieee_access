@@ -8,6 +8,7 @@ import torch
 from sac import SAC
 # from torch.utils.tensorboard import SummaryWriter
 from replay_memory import ReplayMemory
+import matplotlib.pyplot as plt
 
 import random
 from config import cfg_seed, cfg_env, cfg_z_dim
@@ -17,7 +18,8 @@ parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
+# parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
+parser.add_argument('--num_steps', type=int, default=60001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
@@ -69,7 +71,7 @@ args_init_dict = {"offline_data": offline_data,
 
 vi = vi_base.baseVI(args_init_dict)
 
-vi.load()
+vi.load(ckpt_key="unweighted")
 
 env = vi
 
@@ -83,6 +85,10 @@ memory = ReplayMemory(args.replay_size, seed)
 total_numsteps = 0
 updates = 0
 
+train_epirew_list = []
+train_steps_list = []
+test_epirew_list = []
+test_steps_list = []
 for i_episode in itertools.count(1):
     episode_reward = 0
     episode_steps = 0
@@ -121,6 +127,8 @@ for i_episode in itertools.count(1):
         break
 
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
+    train_epirew_list.append(episode_reward)
+    train_steps_list.append(total_numsteps)
 
     if i_episode % 10 == 0 and args.eval is True:
         avg_reward = 0.
@@ -146,5 +154,14 @@ for i_episode in itertools.count(1):
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("----------------------------------------")
+        test_epirew_list.append(avg_reward)
+        test_steps_list.append(total_numsteps)
+        plt.plot(train_steps_list, train_epirew_list, label="train")
+        plt.plot(test_steps_list, test_epirew_list, label="test")
+        if cfg_env == "pendulum":
+            plt.ylim([-4000,0])
+        plt.legend()
+        plt.savefig("fig_policy_optimization_curve_standardvae.png")
+        plt.close()
 
 # env.close()

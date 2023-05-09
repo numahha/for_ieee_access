@@ -1,5 +1,5 @@
 cfg_env = 'pendulum'
-cfg_env = 'cartpole'
+# cfg_env = 'cartpole'
 
 if cfg_env == "pendulum":
     cfg_z_dim = 1
