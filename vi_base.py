@@ -95,7 +95,8 @@ class baseVI:
                     'initial_belief': self.initial_belief,
                     'penalty_model_dict': self.penalty_model.state_dict(),
                    }, ckpt_name)
-        print("base save", self.initial_belief.data.sum())
+        print("base load self.initial_belief.data.sum()", self.initial_belief.data.sum())
+        print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
 
     def load(self, ckpt_key="unweighted"):
         # if ckpt_name is None:
@@ -110,7 +111,8 @@ class baseVI:
         self.initial_belief = checkpoint['initial_belief']
         self.penalty_model.load_state_dict(checkpoint['penalty_model_dict'])
 
-        print("base load", self.initial_belief.data.sum())
+        print("base load self.initial_belief.data.sum()", self.initial_belief.data.sum())
+        print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
         self.update_mulogvar_offlinedata()
         self.dec.my_np_compile()
 
@@ -439,12 +441,12 @@ class baseVI:
         if flag==1:
             print("train_vae: enc_dec")
             param_list = list(self.enc.parameters())+list(self.dec.parameters())
-        elif flag==2:
-            print("train_vae: enc")
-            param_list = list(self.enc.parameters())
-        elif flag==3:
-            print("train_vae: dec")
-            param_list = list(self.dec.parameters())
+        # elif flag==2:
+        #     print("train_vae: enc")
+        #     param_list = list(self.enc.parameters())
+        # elif flag==3:
+        #     print("train_vae: dec")
+        #     param_list = list(self.dec.parameters())
         else:
             return [], []
         loss_fn = self._loss_train_unweighted_vae
