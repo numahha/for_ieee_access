@@ -173,9 +173,10 @@ class baseVI:
         if self.sim_timestep>=(self._max_episode_steps-1):
             done=True
 
-        s_limit = 100.
+        # s_limit = 100.
+        s_limit = 20.
         if np.abs(self.sim_s).max()>s_limit:
-            print("predict diverge", self.sim_s, "sim_timestep", self.sim_timestep)
+            print("predict diverge", self.sim_s, ds, "sim_timestep", self.sim_timestep)
             self.sim_s = np.clip(self.sim_s, -s_limit, s_limit)
             done = True
         self.sim_timestep+=1
@@ -321,11 +322,10 @@ class baseVI:
             stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
             next_sb, reward, done, _ = self.step(action, update_belief=update_belief)
             state = next_sb[:self.s_dim]
+            if done:
+                break
             if random_stop:
                 if np.random.rand()>self.gamma:
-                    break
-            else:
-                if done:
                     break
         return np.array(stateaction_history)
     
@@ -342,11 +342,10 @@ class baseVI:
             stateaction_history.append(np.hstack([aug_state.flatten()[:self.s_dim], action.flatten(), z]))
             next_aug_state, reward, done, _ = self.step(action)
             aug_state = next_aug_state
+            if done:
+                break
             if random_stop:
                 if np.random.rand()>self.gamma:
-                    break
-            else:
-                if done:
                     break
         return np.array(stateaction_history)
 

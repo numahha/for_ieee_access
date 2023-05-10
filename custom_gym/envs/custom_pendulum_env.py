@@ -18,17 +18,13 @@ class CustomPendulumEnv(gym.Env):
         self.max_speed=10
         self.max_torque=2.
         self.dt=.1
-        # self.dt=.1
         self.viewer = None
 
-        # high = np.array([1., 1., self.max_speed])
         high = np.array([4.*np.pi, self.max_speed])
         # self.action_space = spaces.Box(low=-self.max_torque, high=self.max_torque, shape=(1,), dtype=np.float32)
         # self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
         self.action_space = spaces.Box(low=-np.float32(self.max_torque), high=np.float32(self.max_torque), shape=(1,))
         self.observation_space = spaces.Box(low=-np.float32(high), high=np.float32(high))
-
-        # self.seed()
 
 
     def seed(self, seed=None):
@@ -40,7 +36,6 @@ class CustomPendulumEnv(gym.Env):
         th, thdot = self.state # th := theta
 
         g = 10.
-        # m = 1.
         m = self.m
         l = 1.
         c = self.c
@@ -48,7 +43,6 @@ class CustomPendulumEnv(gym.Env):
 
         u = np.clip(u, -self.max_torque, self.max_torque)[0]
         self.last_u = u # for rendering
-        #costs = angle_normalize(th)**2 + .1*thdot**2 + .001*(u**2)
         rew = self.rew_fn(self._get_obs(), u)
 
         newthdot = thdot + (-3*g/(2*l) * np.sin(th + np.pi) + 3./(m*l**2)*( -c*thdot + u)) * dt
@@ -61,8 +55,6 @@ class CustomPendulumEnv(gym.Env):
 
     def rew_fn(self,o,u):
 
-        #r = np.sqrt((o[0]**2)+(o[1]**2))
-        #th = math.atan2(o[1]/r, o[0]/r)
         th = o[0]
         thdot = o[1]
         costs = angle_normalize(th)**2 + .1*thdot**2 + .001*(u**2)
@@ -71,21 +63,14 @@ class CustomPendulumEnv(gym.Env):
 
 
     def reset(self, fix_init=False):
-        # high = np.array([np.pi/3, 1.])
-
         self.state = np.array([np.pi, 0.0])
         if not fix_init:
             high = np.array([0.8*np.pi, 0.5])
             self.state += self.np_random.uniform(low=-high, high=high)
         self.last_u = None
         self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
-
-        # self.c = 0.25*np.random.rand() + 0.05# coeff * [0,1)
         self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
-
-        # self.env_param = np.array([self.m, self.c])
-        # self.c=0
-        print("c =",self.c)
+        # print("c =",self.c)
         return self._get_obs().astype(np.float32)
 
 
@@ -101,7 +86,6 @@ class CustomPendulumEnv(gym.Env):
 
     def _get_obs(self):
         theta, thetadot = self.state
-        # return np.array([np.cos(theta), np.sin(theta), thetadot])
         return np.array([theta, thetadot])
 
 

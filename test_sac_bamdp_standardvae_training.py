@@ -11,7 +11,7 @@ from replay_memory import ReplayMemory
 import matplotlib.pyplot as plt
 
 import random
-from config import cfg_seed, cfg_env, cfg_z_dim
+from config import cfg_seed, cfg_env, cfg_z_dim, cfg_sac_num_steps
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
 parser.add_argument('--eval', type=bool, default=True,
@@ -19,8 +19,8 @@ parser.add_argument('--eval', type=bool, default=True,
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
 # parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
-parser.add_argument('--num_steps', type=int, default=60001, metavar='N',
-                    help='maximum number of steps (default: 1000000)')
+# parser.add_argument('--num_steps', type=int, default=60001, metavar='N',
+#                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
 parser.add_argument('--start_steps', type=int, default=4000, metavar='N',
@@ -31,8 +31,9 @@ parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
 #                     help='run on CUDA (default: False)')
 args = parser.parse_args()
 
-env_str="pendulum"
+env_str=cfg_env
 seed = cfg_seed
+args_num_steps = cfg_sac_num_steps
 
 if cfg_env == "pendulum":
     env_name = "CustomPendulum-v0"
@@ -123,7 +124,7 @@ for i_episode in itertools.count(1):
 
         state = next_state
 
-    if total_numsteps > args.num_steps:
+    if total_numsteps > args_num_steps:
         break
 
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))

@@ -9,7 +9,7 @@ from sac import SAC
 # from torch.utils.tensorboard import SummaryWriter
 from replay_memory import ReplayMemory
 import random
-from config import cfg_seed, cfg_env, cfg_z_dim
+from config import cfg_seed, cfg_env, cfg_z_dim, cfg_sac_num_steps
 import matplotlib.pyplot as plt
 
 
@@ -18,8 +18,8 @@ parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
-                    help='maximum number of steps (default: 1000000)')
+# parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
+#                     help='maximum number of steps (default: 1000000)')
 # parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
 #                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
@@ -38,6 +38,7 @@ args = parser.parse_args()
 
 env_str=cfg_env
 seed = cfg_seed
+args_num_steps = cfg_sac_num_steps
 
 if cfg_env == "pendulum":
     env_name = "CustomPendulum-v0"
@@ -132,7 +133,7 @@ for i_episode in itertools.count(1):
 
         state = next_state
 
-    if total_numsteps > args.num_steps:
+    if total_numsteps > args_num_steps:
         break
 
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
@@ -169,7 +170,7 @@ for i_episode in itertools.count(1):
         plt.plot(train_steps_list, train_epirew_list, label="train")
         plt.plot(test_steps_list, test_epirew_list, label="test")
         plt.legend()
-        plt.savefig("fig_policy_optimization_curve_standardvae.png")
+        plt.savefig("fig_policy_optimization_curve_weightedvae.png")
         plt.close()
 
 # env.close()
