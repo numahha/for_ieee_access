@@ -39,6 +39,11 @@ class baseVI:
         self.action_space       = env.action_space
         self.observation_space       = env.observation_space
 
+        self.abs_s_max = torch.zeros(self.s_dim)
+        for m in range(len(self.offline_data)):
+            for i in range(self.s_dim):
+                self.abs_s_max[i] = torch.max(self.abs_s_max[i],torch.abs(self.offline_data[m][:,i]).max())
+        self.abs_s_max = self.abs_s_max.numpy()
 
         self.enc = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
         self.dec = Decoder(self.s_dim, self.a_dim, self.z_dim)         # p(ds|s,a,z)
@@ -173,11 +178,13 @@ class baseVI:
         if self.sim_timestep>=(self._max_episode_steps-1):
             done=True
 
-        # s_limit = 100.
-        s_limit = 20.
-        if np.abs(self.sim_s).max()>s_limit:
-            print("predict diverge", self.sim_s, ds, "sim_timestep", self.sim_timestep)
+        s_limit = 2*self.abs_s_max
+        # s_limit = 100
+        if np.count_nonzero(np.abs(self.sim_s)>(2*self.abs_s_max))>0:
+        # if np.abs(self.sim_s).max()>s_limit:
+            print("predict diverge", self.sim_s, ds, s_limit, self.abs_s_max, "sim_timestep", self.sim_timestep)
             self.sim_s = np.clip(self.sim_s, -s_limit, s_limit)
+            # print( self.sim_s)
             done = True
         self.sim_timestep+=1
 
@@ -315,8 +322,8 @@ class baseVI:
         done = False
         stateaction_history = []
         while True:
-            if np.abs(state).max()>1e3:
-                break
+            # if np.abs(state).max()>1e3:
+            #     break
             with torch.no_grad():
                 action = self.mdp_policy(state, evaluate=self.policy_evaluate)
             stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
@@ -335,8 +342,8 @@ class baseVI:
         done = False
         stateaction_history = []
         while True:
-            if np.abs(aug_state[:self.s_dim]).max()>1e3:
-                break
+            # if np.abs(aug_state[:self.s_dim]).max()>1e3:
+            #     break
             with torch.no_grad():
                 action = self.bamdp_policy(aug_state, evaluate=self.policy_evaluate)
             stateaction_history.append(np.hstack([aug_state.flatten()[:self.s_dim], action.flatten(), z]))
