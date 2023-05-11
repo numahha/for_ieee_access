@@ -186,6 +186,7 @@ class baseVI:
             self.sim_s = np.clip(self.sim_s, -s_limit, s_limit)
             # print( self.sim_s)
             done = True
+            rew -= self._max_episode_steps
         self.sim_timestep+=1
 
         # if penalty_flag:

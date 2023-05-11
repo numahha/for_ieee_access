@@ -18,17 +18,12 @@ parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-# parser.add_argument('--num_steps', type=int, default=80001, metavar='N',
-# parser.add_argument('--num_steps', type=int, default=60001, metavar='N',
-#                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
 parser.add_argument('--start_steps', type=int, default=4000, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
 parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
-# parser.add_argument('--cuda', action="store_true",
-#                     help='run on CUDA (default: False)')
 args = parser.parse_args()
 
 env_str=cfg_env
@@ -139,7 +134,9 @@ for i_episode in itertools.count(1):
             state = env.reset_po()
             episode_reward = 0
             done = False
+            state_history = []
             while not done:
+                state_history.append(1*state)
                 action = agent.select_action(state, evaluate=True)
 
                 next_state, reward, done, _ = env.step(action)
@@ -150,6 +147,12 @@ for i_episode in itertools.count(1):
             avg_reward += episode_reward
         avg_reward /= episodes
         agent.save_checkpoint(env_name="custom_"+env_str+"_bamdp_standardvae")
+        state_history = np.array(state_history)
+        plt.plot(state_history[:,0], state_history[:,1])
+        plt.plot(state_history[0,0], state_history[0,1],"o")
+
+        plt.savefig("fig_tmp_phase.png")
+        plt.close()
 
 
         print("----------------------------------------")
@@ -160,7 +163,7 @@ for i_episode in itertools.count(1):
         plt.plot(train_steps_list, train_epirew_list, label="train")
         plt.plot(test_steps_list, test_epirew_list, label="test")
         if cfg_env == "pendulum":
-            plt.ylim([-3000,0])
+            plt.ylim([-300,0])
         plt.legend()
         plt.savefig("fig_policy_optimization_curve_standardvae.png")
         plt.close()
