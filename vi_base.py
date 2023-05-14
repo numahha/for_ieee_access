@@ -38,6 +38,7 @@ class baseVI:
         self._max_episode_steps = env.spec.max_episode_steps
         self.action_space       = env.action_space
         self.observation_space       = env.observation_space
+        self.h_min_tilde=None
 
         self.abs_s_max = torch.zeros(self.s_dim)
         for m in range(len(self.offline_data)):
@@ -591,7 +592,28 @@ class baseVI:
         return ret
 
 
-    # def _loss_train_initial_belief(self, m, flag=False):
+    def set_h_min_tilde(self):
+        self.h_min_tilde=np.inf
+        with torch.no_grad():
+            for m in range(len(self.offline_data)):
+                temp_data_m = self.offline_data[m]
+                tmp_z= self.sample_z(self.mulogvar_offlinedata[m], len(temp_data_m))
+
+                saz = torch.cat([temp_data_m[:, :(self.sa_dim)], tmp_z], dim=1)
+                ds_mulogvar = self.dec(saz)
+                ds_m = temp_data_m[:, (self.sa_dim):(self.sas_dim)]
+                penalty_target = - log_gaussian(ds_m, # y
+                                                ds_mulogvar[:, :self.s_dim], # mu
+                                                ds_mulogvar[:, self.s_dim:] # logvar
+                                                )
+                penalty_target_min = penalty_target.min()
+                print(penalty_target.min(), penalty_target.max())
+                if self.h_min_tilde>penalty_target_min:
+                    self.h_min_tilde = penalty_target_min
+
+        
+
+
     def _loss_train_penalty(self, m):
         temp_data_m = self.offline_data[m]
         tmp_z= self.sample_z(self.mulogvar_offlinedata[m], len(temp_data_m))
@@ -615,4 +637,5 @@ class baseVI:
         param_list = list(self.penalty_model.parameters())
         loss_fn = self._loss_train_penalty
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
+        self.set_h_min_tilde()
         return ret
