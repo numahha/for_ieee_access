@@ -120,6 +120,7 @@ class baseVI:
         print("base load self.initial_belief.data.sum()", self.initial_belief.data.sum())
         print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
         self.update_mulogvar_offlinedata()
+        self.set_h_min_tilde()
         self.dec.my_np_compile()
 
 
@@ -462,6 +463,7 @@ class baseVI:
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
         self.restore_encdec()
         self.update_mulogvar_offlinedata()
+        self.set_h_min_tilde()
         return ret
 
 
@@ -594,6 +596,7 @@ class baseVI:
 
     def set_h_min_tilde(self):
         self.h_min_tilde=np.inf
+        target_max = -np.inf
         with torch.no_grad():
             for m in range(len(self.offline_data)):
                 temp_data_m = self.offline_data[m]
@@ -607,9 +610,11 @@ class baseVI:
                                                 ds_mulogvar[:, self.s_dim:] # logvar
                                                 )
                 penalty_target_min = penalty_target.min()
-                print(penalty_target.min(), penalty_target.max())
                 if self.h_min_tilde>penalty_target_min:
                     self.h_min_tilde = penalty_target_min
+                if target_max<penalty_target.max():
+                    target_max = penalty_target.max()
+            print("penalty_target_min", self.h_min_tilde, "penalty_target_max", target_max)
 
         
 
@@ -637,5 +642,4 @@ class baseVI:
         param_list = list(self.penalty_model.parameters())
         loss_fn = self._loss_train_penalty
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
-        self.set_h_min_tilde()
         return ret

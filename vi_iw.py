@@ -14,6 +14,7 @@ class iwVI(baseVI):
     def __init__(self, args_init_dict):
         super().__init__(args_init_dict)
         self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)
+        self.kappa_tilde=None
 
     def save(self, ckpt_key):
         ckpt_name1 = "ckpt_iwvi_basepart"+self.ckpt_suffix+"_"+ckpt_key
@@ -79,6 +80,7 @@ class iwVI(baseVI):
         loss_fn = self._loss_train_weighted_vae
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
         self.update_mulogvar_offlinedata()
+        self.set_h_min_tilde()
         return ret
 
     def eval_loss(self, weight_alpha):
@@ -94,7 +96,7 @@ class iwVI(baseVI):
             for _ in range(ave_num):
                 temp_train_loss = 0
                 for m in train_idx_list:
-                    temp_train_loss += loss_fn(m).item()
+                    temp_train_loss += loss_fn(m).item() / len(self.offline_data[m])
                 temp_train_loss /= len(train_idx_list)
                 train_loss_list.append(temp_train_loss)
             train_loss_list = np.array(train_loss_list)
@@ -104,7 +106,7 @@ class iwVI(baseVI):
             for _ in range(ave_num):
                 temp_valid_loss = 0
                 for m in valid_idx_list:
-                    temp_valid_loss += loss_fn(m).item()
+                    temp_valid_loss += loss_fn(m).item() / len(self.offline_data[m])
                 temp_valid_loss /= len(valid_idx_list)
                 valid_loss_list.append(temp_valid_loss)
             valid_loss_list = np.array(valid_loss_list)
@@ -112,6 +114,9 @@ class iwVI(baseVI):
 
         print("train_loss: ",train_loss)
         print("valid_loss: ",valid_loss)
+        self.ell_tilde = (train_loss*len(train_idx_list) + valid_loss*len(valid_idx_list)) / (len(train_idx_list)+len(valid_idx_list))
+        self.kappa_tilde = 0.5*(1-self.gamma)/np.sqrt(self.ell_tilde-self.h_min_tilde)
+        print(self.h_min_tilde, self.ell_tilde, self.kappa_tilde)
         return train_loss, valid_loss
 
 
