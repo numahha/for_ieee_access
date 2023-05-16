@@ -14,8 +14,9 @@ class iwVI(baseVI):
     def __init__(self, args_init_dict):
         super().__init__(args_init_dict)
         self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)
-        self.kappa_tilde=None
-
+        self.kappa_tilde=np.inf
+        self.c_coeff = 1.
+        
     def save(self, ckpt_key):
         ckpt_name1 = "ckpt_iwvi_basepart"+self.ckpt_suffix+"_"+ckpt_key
         ckpt_name2 = "ckpt_iwvi_"+self.ckpt_suffix+"_"+ckpt_key
@@ -46,7 +47,11 @@ class iwVI(baseVI):
         param_list = list(self.ratio_model.parameters())
         loss_fn = self._loss_train_ratio
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
+        self.compute_offlinedata_weight()
+        return ret
 
+
+    def compute_offlinedata_weight(self):
         self.offlinedata_weight = [None]*len(self.offline_data)
         self.offlinedata_weight_sum = [None]*len(self.offline_data)
         with torch.no_grad():
@@ -60,7 +65,21 @@ class iwVI(baseVI):
                 self.offlinedata_weight[m] = de_output_data.clone()
                 self.offlinedata_weight_sum[m] = self.offlinedata_weight[m].sum().numpy()
 
-        return ret
+
+
+    def _loss_train_ratio(self, m):
+
+        temp_offline_sa = self.offline_data[m][:,:(self.sa_dim)]
+        simulation_data_saz = torch_from_numpy(self.simenv_rolloutdata[m])
+        z = simulation_data_saz[:,-self.z_dim:]
+        len_data = len(temp_offline_sa)
+        g = self.mulogvar_offlinedata[m][:self.z_dim]*torch.ones(len_data, 1*self.z_dim)
+        de_input_data = torch.cat([temp_offline_sa, z, g], axis=1)
+        nu_input_data = torch.cat([simulation_data_saz, g], axis=1)
+        de_output_data = self.ratio_model(de_input_data)
+        nu_output_data = self.ratio_model(nu_input_data)
+        loss = logireg_loss(de_output_data, nu_output_data)
+        return loss
 
     def train_weighted_vae(self, num_iter, lr, early_stop_step, weight_alpha, flag=1):
 
@@ -115,24 +134,9 @@ class iwVI(baseVI):
         print("train_loss: ",train_loss)
         print("valid_loss: ",valid_loss)
         self.ell_tilde = (train_loss*len(train_idx_list) + valid_loss*len(valid_idx_list)) / (len(train_idx_list)+len(valid_idx_list))
-        self.kappa_tilde = 0.5*(1-self.gamma)/np.sqrt(self.ell_tilde-self.h_min_tilde)
-        print(self.h_min_tilde, self.ell_tilde, self.kappa_tilde)
+        self.kappa_tilde = self.c_coeff*0.5*(1-self.gamma)/np.sqrt(self.ell_tilde-self.h_min_tilde)
+        print("h_min_tilde", self.h_min_tilde, "ell_tilde", self.ell_tilde, "kappa_tilde", self.kappa_tilde)
         return train_loss, valid_loss
-
-
-    def _loss_train_ratio(self, m):
-
-        temp_offline_sa = self.offline_data[m][:,:(self.sa_dim)]
-        simulation_data_saz = torch_from_numpy(self.simenv_rolloutdata[m])
-        z = simulation_data_saz[:,-self.z_dim:]
-        len_data = len(temp_offline_sa)
-        g = self.mulogvar_offlinedata[m][:self.z_dim]*torch.ones(len_data, 1*self.z_dim)
-        de_input_data = torch.cat([temp_offline_sa, z, g], axis=1)
-        nu_input_data = torch.cat([simulation_data_saz, g], axis=1)
-        de_output_data = self.ratio_model(de_input_data)
-        nu_output_data = self.ratio_model(nu_input_data)
-        loss = logireg_loss(de_output_data, nu_output_data)
-        return loss
 
 
     def _loss_train_weighted_vae(self, m):
