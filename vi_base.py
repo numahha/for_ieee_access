@@ -39,6 +39,8 @@ class baseVI:
         self.action_space       = env.action_space
         self.observation_space       = env.observation_space
         self.h_min_tilde=None
+        self.update_belief=True
+        self.penalty_flag=True
 
         self.abs_s_max = torch.zeros(self.s_dim)
         for m in range(len(self.offline_data)):
@@ -161,7 +163,7 @@ class baseVI:
         sb =np.hstack([self.sim_s, self.sim_b])
         return sb
 
-    def step(self, a, update_belief=True, penalty_flag=True):
+    def step(self, a):
         a= a.flatten()
         saz = np.hstack([self.sim_s, a, self.sim_z]).reshape(1,-1)
         ds_mulogvar = self.dec.my_np_forward(saz).flatten()
@@ -191,11 +193,12 @@ class baseVI:
             rew -= self._max_episode_steps
         self.sim_timestep+=1
 
-        # if penalty_flag:
+        if self.penalty_flag:
+            pass
         #     with torch.no_grad():
         #         penalty = self.penalty_model(torch.hstack([saz, self.train_g_m_list[self.sim_m]]))
         #     rew -= self.lam * penalty.flatten()[0]
-        if update_belief:
+        if self.update_belief:
             self.sim_b = self.get_belief(self.online_data[:, :(self.sas_dim)]).detach().flatten()
         sb = np.hstack([self.sim_s, self.sim_b])
         return sb, rew, done, {}
@@ -290,12 +293,14 @@ class baseVI:
         done = False
         stateaction_history = []
         self.debug_realenv.env.env.set_params(c=temp_c)
+        self.update_belief=False
         while not done:
             with torch.no_grad():
                 action = self.mdp_policy(state, evaluate=self.policy_evaluate)  # Sample action from policy
             stateaction_history.append(np.hstack([state.flatten(), action.flatten()]))
             next_state, reward, done, _ = self.debug_realenv.step(action) # Step
             state = 1 * next_state
+        self.update_belief=True
         return np.array(stateaction_history)
 
 
@@ -306,6 +311,7 @@ class baseVI:
         belief = self.get_belief()
         stateaction_history = []
         self.debug_realenv.env.env.set_params(c=temp_c)
+        self.update_belief=True
         while not done:
             aug_state = np.hstack([state, belief.numpy()])
             with torch.no_grad():
@@ -316,27 +322,30 @@ class baseVI:
                                     np.hstack([state, action, next_state-state])])
             belief = self.get_belief(sads_array=sads_array)
             state = 1 * next_state
+        self.update_belief=True
         return np.array(stateaction_history)
 
     
-    def rollout_mdppolicy_oneepisode_simenv(self, z=None, random_stop=True, fix_init=True, update_belief=False):
+    def rollout_mdppolicy_oneepisode_simenv(self, z=None, random_stop=True, fix_init=True):
         sb = self.reset(fix_init=fix_init, z=z)
         state = sb[:self.s_dim]
         done = False
         stateaction_history = []
+        self.update_belief=False
         while True:
             # if np.abs(state).max()>1e3:
             #     break
             with torch.no_grad():
                 action = self.mdp_policy(state, evaluate=self.policy_evaluate)
             stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))
-            next_sb, reward, done, _ = self.step(action, update_belief=update_belief)
+            next_sb, reward, done, _ = self.step(action)
             state = next_sb[:self.s_dim]
             if done:
                 break
             if random_stop:
                 if np.random.rand()>self.gamma:
                     break
+        self.update_belief=True
         return np.array(stateaction_history)
     
 
@@ -360,21 +369,23 @@ class baseVI:
         return np.array(stateaction_history)
 
 
-    def get_sim_rollout_mdppolicy_data_fixlen(self, update_belief=False):
+    def get_sim_rollout_mdppolicy_data_fixlen(self):
         self.dec.my_np_compile()
         self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
+        self.update_belief=False
         for m in range(len(self.offline_data)):
             print(m," ", end="")
             z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
             # print("debug print",m,z)
-            self.simenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, fix_init=True, update_belief=update_belief)
+            self.simenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, fix_init=True)
         print(" ")
+        self.update_belief=True
 
-    def get_sim_rollout_mdppolicy_data_randomstop(self, update_belief=False):
+    def get_sim_rollout_mdppolicy_data_randomstop(self):
         self.dec.my_np_compile()
         self.policy_evaluate=False
-        # self.policy_evaluate=True
+        self.update_belief=False
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         for m in range(len(self.offline_data)):
             print(m," ", end="")
@@ -382,15 +393,16 @@ class baseVI:
             while 1:
                 z = 1. * self.mulogvar_offlinedata[m][:self.z_dim]
                 if tmp_rolloutdata is None:
-                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=True, update_belief=update_belief)
+                    tmp_rolloutdata = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=True)
                 else:
-                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=True, fix_init=False, update_belief=update_belief)])
+                    tmp_rolloutdata = np.vstack([tmp_rolloutdata, self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=True, fix_init=False)])
                 if len(tmp_rolloutdata)>(len(self.offline_data[m])*2):
                     break
             idx = np.array(range(len(tmp_rolloutdata)))
             np.random.shuffle(idx)
             self.simenv_rolloutdata[m] = tmp_rolloutdata[ idx[:len(self.offline_data[m])] ]
         print(" ")
+        self.update_belief=True
 
 
     def get_sim_rollout_bamdppolicy_data_fixlen(self):
@@ -398,6 +410,7 @@ class baseVI:
         self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
         tmp_clock = time.time()
+        self.update_belief=True
         for m in range(len(self.offline_data)):
             print("\n",m,time.time()-tmp_clock)
             tmp_clock = time.time()
@@ -405,13 +418,15 @@ class baseVI:
             # print("debug print",m,z)
             self.simenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_simenv(z=z, random_stop=False, fix_init=True)
         print(" ")
+        self.update_belief=True
 
 
-    def get_sim_rollout_bamdppolicy_data_randomstop(self, update_belief=False):
+    def get_sim_rollout_bamdppolicy_data_randomstop(self):
         self.dec.my_np_compile()
         self.policy_evaluate=False
         # self.policy_evaluate=True
         self.simenv_rolloutdata = [None]*len(self.offline_data)
+        self.update_belief=True
         for m in range(len(self.offline_data)):
             print("\n",m)
             tmp_rolloutdata = None
@@ -427,24 +442,29 @@ class baseVI:
             np.random.shuffle(idx)
             self.simenv_rolloutdata[m] = tmp_rolloutdata[ idx[:len(self.offline_data[m])] ]
         print(" ")
+        self.update_belief=True
 
 
     def get_real_rollout_mdppolicy_data(self):
         self.policy_evaluate= True
+        self.update_belief=False
         for m in range(len(self.offline_data)):
             print(m," ", end="")
             self.debug_realenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_realenv(self.debug_c_list[m])
         print(" ")
+        self.update_belief=True
 
 
     def get_real_rollout_bamdppolicy_data(self):
         self.policy_evaluate= True
         tmp_clock = time.time()
+        self.update_belief=True
         for m in range(len(self.offline_data)):
             print("\n",m,time.time()-tmp_clock)
             tmp_clock = time.time()
             self.debug_realenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_realenv(self.debug_c_list[m])
         print(" ")
+        self.update_belief=True
 
 
     def train_unweighted_vae(self, num_iter, lr, early_stop_step, flag=1):
