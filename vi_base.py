@@ -21,6 +21,7 @@ class baseVI:
         self.bamdp_policy = args_init_dict["bamdp_policy"]
         debug_info = args_init_dict["debug_info"]
         self.ckpt_suffix = args_init_dict["ckpt_suffix"]
+        self.penalty_lam_coef = args_init_dict["penalty_lam_coef"]
 
         train_valid_ratio = 0.2
         self.valid_ave_num=1 # validlossを計算するためのサンプル数
@@ -39,7 +40,7 @@ class baseVI:
         self.action_space       = env.action_space
         self.observation_space       = env.observation_space
         self.h_min_tilde=None
-        self.kappa_tilde=None
+        self.kappa_tilde=1*self.penalty_lam_coef
         self.update_belief=True
         self.penalty_flag=True
 
@@ -53,10 +54,7 @@ class baseVI:
         self.dec = Decoder(self.s_dim, self.a_dim, self.z_dim)         # p(ds|s,a,z)
         self.prior = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=False)  # [mean, logvar] for VAE training
 
-        # self.lam=1e-4 # ペナルティの係数？
         self.penalty_model = PenaltyModel(s_dim, a_dim, z_dim)
-        # self.train_g_m_list=None
-        # self.valid_g_m_list=None
         self.initial_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
         self.temp_belief = torch.nn.Parameter(torch.zeros(2*z_dim), requires_grad=True)  # [mean, logvar] for planning, a gaussian approximate of 1/M * sum_{m} q(z|D^train_m)
 
@@ -76,10 +74,6 @@ class baseVI:
             self.debug_c_list = args_init_dict["debug_info"][:,1]
             self.debug_realenv_rolloutdata = [None]*len(self.offline_data)
 
-    # def reset_encdec(self):
-    #     self.enc = Encoder(self.s_dim, self.a_dim, self.z_dim)         # q(z|D^train_m)
-    #     self.dec = Decoder(self.s_dim, self.a_dim, self.z_dim)         # p(ds|s,a,z)
-
 
     def store_encdec(self):
         self.enc_store = copy.deepcopy(self.enc)         # q(z|D^train_m)
@@ -93,9 +87,6 @@ class baseVI:
 
 
     def save(self, ckpt_key="unweighted"):
-        # if ckpt_name is None:
-        #     ckpt_name="vi_base_ckpt"
-        # ckpt_name += "_"+self.ckpt_suffix
         ckpt_name = "ckpt_basevi_"+self.ckpt_suffix+"_"+ckpt_key
         print("base save ckpt", ckpt_name)
         torch.save({'enc_state_dict': self.enc.state_dict(),
@@ -108,9 +99,6 @@ class baseVI:
         print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
 
     def load(self, ckpt_key="unweighted"):
-        # if ckpt_name is None:
-        #     ckpt_name="vi_base_ckpt"
-        # ckpt_name += "_"+self.ckpt_suffix
         ckpt_name = "ckpt_basevi_"+self.ckpt_suffix+"_"+ckpt_key
         print("base load ckpt", ckpt_name)
         checkpoint = torch.load(ckpt_name)
@@ -132,7 +120,6 @@ class baseVI:
         if z is None:
             std = torch.exp(0.5 * self.initial_belief[self.z_dim:])
             eps = torch.randn_like(std)
-            # eps = np.random.randn(len(std))
             self.sim_z = (eps*std+self.initial_belief[:self.z_dim]).detach().flatten()
             # print("self.initial_belief",self.initial_belief.data, "self.sim_z",self.sim_z)
         else:
@@ -152,7 +139,6 @@ class baseVI:
         mulogvar = self.mulogvar_offlinedata[m]
         std = torch.exp(0.5 * mulogvar[self.z_dim:])
         eps = torch.randn_like(std)
-        # eps = np.random.randn(len(std))
         print(eps, std, mulogvar[:self.z_dim])
         self.sim_z = (eps*std+mulogvar[:self.z_dim]).detach().flatten()
         # print("mulogvar",mulogvar, "self.sim_z",self.sim_z)
@@ -184,9 +170,7 @@ class baseVI:
             done=True
 
         s_limit = 2*self.abs_s_max
-        # s_limit = 100
         if np.count_nonzero(np.abs(self.sim_s)>(2*self.abs_s_max))>0:
-        # if np.abs(self.sim_s).max()>s_limit:
             print("predict diverge", self.sim_s, ds, s_limit, self.abs_s_max, "sim_timestep", self.sim_timestep)
             self.sim_s = np.clip(self.sim_s, -s_limit, s_limit)
             # print( self.sim_s)
@@ -339,8 +323,6 @@ class baseVI:
         self.update_belief=False
         self.penalty_flag=False
         while True:
-            # if np.abs(state).max()>1e3:
-            #     break
             with torch.no_grad():
                 action = self.mdp_policy(state, evaluate=self.policy_evaluate)
             stateaction_history.append(np.hstack([state.flatten(), action.flatten(), z]))

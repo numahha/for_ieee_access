@@ -11,3 +11,6 @@ if cfg_env == "cartpole":
 
 cfg_seed = 0
 cfg_sac_num_steps = 80000
+cfg_default_lr=5e-4
+cfg_default_early=100
+cfg_penalty_lam_coef = 0.

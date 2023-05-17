@@ -36,6 +36,7 @@ class iwVI(baseVI):
             print("fail load", ckpt_name1)
         checkpoint = torch.load(ckpt_name2)
         self.ratio_model.load_state_dict(checkpoint['ratio_model_state_dict'])
+        self.eval_loss(weight_alpha=1.)
 
     def load_base(self, ckpt_key="unweighted"):
         super().load(ckpt_key=ckpt_key)
@@ -64,7 +65,6 @@ class iwVI(baseVI):
                 de_output_data = self.ratio_model(de_input_data)
                 self.offlinedata_weight[m] = de_output_data.clone()
                 self.offlinedata_weight_sum[m] = self.offlinedata_weight[m].sum().numpy()
-
 
 
     def _loss_train_ratio(self, m):

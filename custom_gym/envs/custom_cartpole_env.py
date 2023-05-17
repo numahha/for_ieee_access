@@ -199,7 +199,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
 
     def rew_fn(self, state, action):
-        costs = angle_normalize(state[2])**2 + 0.01*state[3]**2 + 0.01*state[0]**2
+        # costs = angle_normalize(state[2])**2 + 0.01*state[3]**2 + 0.01*state[0]**2
+        costs = (1. - np.exp(-1.*(state[2]**2)))
         return -np.array([costs]).reshape(1)[0]
 
     def get_params(self):
