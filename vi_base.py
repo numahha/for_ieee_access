@@ -42,6 +42,7 @@ class baseVI:
         self.observation_space       = env.observation_space
         self.h_min_tilde=None
         self.kappa_tilde=1*self.penalty_lam_coef
+        self.c_coeff = 1.
         self.update_belief=True
         self.penalty_flag=True
 
@@ -114,6 +115,7 @@ class baseVI:
         print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
         self.update_mulogvar_offlinedata()
         self.set_h_min_tilde()
+        # self.eval_loss_unweighted()
         self.dec.my_np_compile()
 
 
@@ -646,3 +648,39 @@ class baseVI:
         loss_fn = self._loss_train_penalty
         ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
         return ret
+    
+
+    def eval_loss_unweighted(self):
+        total_idx_list = np.array( range(len(self.offline_data)) )
+        train_idx_list = copy.deepcopy(total_idx_list)[self.validdata_num:]
+        valid_idx_list = copy.deepcopy(total_idx_list)[:self.validdata_num]
+        loss_fn = self._loss_train_unweighted_vae
+        ave_num = 10        
+        with torch.no_grad():
+
+            train_loss_list = []
+            for _ in range(ave_num):
+                temp_train_loss = 0
+                for m in train_idx_list:
+                    temp_train_loss += loss_fn(m).item() / len(self.offline_data[m])
+                temp_train_loss /= len(train_idx_list)
+                train_loss_list.append(temp_train_loss)
+            train_loss_list = np.array(train_loss_list)
+            train_loss = train_loss_list.mean()
+
+            valid_loss_list = []
+            for _ in range(ave_num):
+                temp_valid_loss = 0
+                for m in valid_idx_list:
+                    temp_valid_loss += loss_fn(m).item() / len(self.offline_data[m])
+                temp_valid_loss /= len(valid_idx_list)
+                valid_loss_list.append(temp_valid_loss)
+            valid_loss_list = np.array(valid_loss_list)
+            valid_loss = valid_loss_list.mean()
+
+        print("train_loss: ",train_loss)
+        print("valid_loss: ",valid_loss)
+        self.ell_tilde = (train_loss*len(train_idx_list) + valid_loss*len(valid_idx_list)) / (len(train_idx_list)+len(valid_idx_list))
+        self.kappa_tilde = self.c_coeff*0.5*(1-self.gamma)/np.sqrt(self.ell_tilde-self.h_min_tilde)
+        print("h_min_tilde", self.h_min_tilde, "ell_tilde", self.ell_tilde, "kappa_tilde", self.kappa_tilde)
+        return train_loss, valid_loss

@@ -13,9 +13,7 @@ weight_normalize_flag = False
 class iwVI(baseVI):
     def __init__(self, args_init_dict):
         super().__init__(args_init_dict)
-        self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)
-        self.kappa_tilde=np.inf
-        self.c_coeff = 1.
+        self.ratio_model = RatioModel(self.s_dim, self.a_dim, self.z_dim)        
         
     def save(self, ckpt_key):
         ckpt_name1 = "ckpt_iwvi_basepart"+self.ckpt_suffix+"_"+ckpt_key
@@ -135,7 +133,7 @@ class iwVI(baseVI):
         print("valid_loss: ",valid_loss)
         self.ell_tilde = (train_loss*len(train_idx_list) + valid_loss*len(valid_idx_list)) / (len(train_idx_list)+len(valid_idx_list))
         self.kappa_tilde = self.c_coeff*0.5*(1-self.gamma)/np.sqrt(self.ell_tilde-self.h_min_tilde)
-        print("h_min_tilde", self.h_min_tilde, "ell_tilde", self.ell_tilde, "kappa_tilde", self.kappa_tilde)
+        print("weight_alpha",weight_alpha,"h_min_tilde", self.h_min_tilde, "ell_tilde", self.ell_tilde, "kappa_tilde", self.kappa_tilde)
         return train_loss, valid_loss
 
 
