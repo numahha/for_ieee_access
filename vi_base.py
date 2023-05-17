@@ -9,6 +9,7 @@ from model_bamdp import Encoder, Decoder, PenaltyModel
 
 device = torch.device('cpu')
 
+
 class baseVI:
     def __init__(self, args_init_dict):
 
@@ -98,6 +99,7 @@ class baseVI:
         print("base load self.initial_belief.data.sum()", self.initial_belief.data.sum())
         print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
 
+
     def load(self, ckpt_key="unweighted"):
         ckpt_name = "ckpt_basevi_"+self.ckpt_suffix+"_"+ckpt_key
         print("base load ckpt", ckpt_name)
@@ -150,6 +152,7 @@ class baseVI:
         sb =np.hstack([self.sim_s, self.sim_b])
         return sb
 
+
     def step(self, a):
         a= a.flatten()
         saz = np.hstack([self.sim_s, a, self.sim_z]).reshape(1,-1)
@@ -180,9 +183,10 @@ class baseVI:
 
         if self.penalty_flag and (self.kappa_tilde is not None):
             with torch.no_grad():
-                penalty = self.penalty_model(torch.hstack([saz, self.train_g_m_list[self.sim_m]])).numpy()
-            rew -= self.kappa_tilde * (penalty.flatten()[0] - self.h_min_tilde)
-            print("yeah")
+                sazmulogvar = torch.cat([torch_from_numpy(saz), torch_from_numpy(self.sim_b)*torch.ones((len(saz), 2*self.z_dim))], dim=1)
+                tmp_penalty = self.penalty_model(sazmulogvar).numpy().flatten()[0]
+            # print("self.kappa_tilde", self.kappa_tilde)
+            rew -= self.kappa_tilde * (tmp_penalty - self.h_min_tilde)
         if self.update_belief:
             self.sim_b = self.get_belief(self.online_data[:, :(self.sas_dim)]).detach().flatten()
         sb = np.hstack([self.sim_s, self.sim_b])
@@ -371,6 +375,7 @@ class baseVI:
             self.simenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_simenv(z=z, random_stop=False, fix_init=True)
         print(" ")
         self.update_belief=True
+
 
     def get_sim_rollout_mdppolicy_data_randomstop(self):
         self.dec.my_np_compile()
@@ -574,17 +579,15 @@ class baseVI:
                 self.mulogvar_offlinedata.append(z_mulogvar)
             self.mulogvar_offlinedata = torch.vstack(self.mulogvar_offlinedata)
             self.mulogvar_startpoints = torch.vstack([self.mulogvar_offlinedata[::4], self.mulogvar_offlinedata[:2]])
-            
 
 
-
-    # def _loss_train_initial_belief(self, m, flag=False):
     def _loss_train_initial_belief(self, m):
         tmp_z= self.sample_z(self.mulogvar_offlinedata[m], 1)
         return - log_gaussian(tmp_z, # y
                                 self.initial_belief[:self.z_dim], # mu
                                 self.initial_belief[self.z_dim:] # logvar
                                 ).sum()
+
 
     def train_initial_belief(self, num_iter, lr, early_stop_step):
         
@@ -631,7 +634,7 @@ class baseVI:
                                         ds_mulogvar[:, :self.s_dim], # mu
                                         ds_mulogvar[:, self.s_dim:] # logvar
                                         )
-        sazmulogvar = torch.cat([saz, self.mulogvar_offlinedata[m]*torch.ones((len(saz),2*self.z_dim))], dim=1)
+        sazmulogvar = torch.cat([saz, self.mulogvar_offlinedata[m]*torch.ones((len(saz), 2*self.z_dim))], dim=1)
         penalty_pred = self.penalty_model(sazmulogvar)
 
         return (( penalty_pred - penalty_target )**2).mean()
