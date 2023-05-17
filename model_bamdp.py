@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from config import cfg_dec_hidden
 
 clamp_logvarmin=-8 #-8 # -10
 clamp_ratiomin=1e-8
@@ -43,7 +44,7 @@ class Encoder(torch.nn.Module):
 class Decoder(torch.nn.Module):
     def __init__(self, s_dim, a_dim, z_dim):
         super(Decoder, self).__init__()
-        h_dim=48 # 1layer32unitは惜しい, 2layer32unitは重み無しで学習できてしまう, 2layer16unitも惜しい, 3layer16unitはアリ
+        h_dim=cfg_dec_hidden
         self.s_dim=s_dim
         self.saz_dim = s_dim+a_dim+z_dim
         self.activate_fn=torch.nn.ReLU

@@ -78,11 +78,9 @@ class CustomPendulumEnv(gym.Env):
     def get_params(self):
         return np.array([self.m, self.c])
 
-    def set_params(self, m=None, c=None):
-        if m is not None:
-            self.m = m
-        if c is not None:
-            self.c = c
+    def set_params(self, p):
+        self.m = p[0]
+        self.c = p[1]
 
 
     def _get_obs(self):

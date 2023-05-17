@@ -18,6 +18,11 @@ Edit `config.py`
   * alphaを変える
   * predict_divergeあたりを調整する？
 
+100000だと倒立紳士で最初で学習できてしまう？
+
+
+  cartpoleで、最初ほとんど更新しない
+  
 
 
 TODO:

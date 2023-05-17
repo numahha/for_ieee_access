@@ -54,7 +54,8 @@ args_init_dict = {"offline_data": offline_data,
              "mdp_policy":None,
              "bamdp_policy":None,
              "debug_info": None,#debug_info,
-             "env" : env}
+             "env" : env,
+             "ckpt_suffix" : env_str,}
 
 
 # Agent
@@ -62,18 +63,21 @@ agent = SAC(env.observation_space.shape[0]+z_dim*2, env.action_space)
 
 
 
-# agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_standardvae_", evaluate=True)
-# vi = vi_base.baseVI(args_init_dict)
-agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_"+env_str+"_bamdp_weightedvae_", evaluate=True)
-# agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_realbamdpdebug_", evaluate=True)
-vi = vi_iw.iwVI(args_init_dict)
+if 1:
+    agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_"+env_str+"_bamdp_standardvae_", evaluate=True)
+    vi = vi_base.baseVI(args_init_dict)
+    vi.load(ckpt_key="unweighted")
 
 
-vi.load()
+if 0:
+    agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_"+env_str+"_bamdp_weightedvae_", evaluate=True)
+    # agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_realbamdpdebug_", evaluate=True)
+    vi = vi_iw.iwVI(args_init_dict)
+    
 
 
 # Memory
-memory = ReplayMemory(args.replay_size, args.seed)
+# memory = ReplayMemory(args.replay_size, args.seed)
 
 # Training Loop
 total_numsteps = 0

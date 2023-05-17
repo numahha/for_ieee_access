@@ -206,11 +206,9 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     def get_params(self):
         return np.array([self.masspole, self.length])
 
-    def set_params(self, masspole=None, length=None):
-        if masspole is not None:
-            self.masspole = masspole
-        if length is not None:
-            self.length = length
+    def set_params(self, p):                   
+        self.masspole = p[0]
+        self.length = p[1]
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
 

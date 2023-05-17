@@ -22,7 +22,7 @@ class baseVI:
         self.bamdp_policy = args_init_dict["bamdp_policy"]
         debug_info = args_init_dict["debug_info"]
         self.ckpt_suffix = args_init_dict["ckpt_suffix"]
-        self.penalty_lam_coef = args_init_dict["penalty_lam_coef"]
+        # self.penalty_lam_coef = args_init_dict["penalty_lam_coef"]
 
         train_valid_ratio = 0.2
         self.valid_ave_num=1 # validlossを計算するためのサンプル数
@@ -41,7 +41,7 @@ class baseVI:
         self.action_space       = env.action_space
         self.observation_space       = env.observation_space
         self.h_min_tilde=None
-        self.kappa_tilde=1*self.penalty_lam_coef
+        self.kappa_tilde= 1# *self.penalty_lam_coef
         self.c_coeff = 1.
         self.update_belief=True
         self.penalty_flag=True
@@ -73,7 +73,7 @@ class baseVI:
         # only used for debug
         if debug_info is not None:
             self.debug_realenv = env
-            self.debug_c_list = args_init_dict["debug_info"][:,1]
+            self.debug_p_list = args_init_dict["debug_info"][:,:]
             self.debug_realenv_rolloutdata = [None]*len(self.offline_data)
 
 
@@ -279,11 +279,11 @@ class baseVI:
         return loss.item()
 
     
-    def rollout_mdppolicy_oneepisode_realenv(self, temp_c):
+    def rollout_mdppolicy_oneepisode_realenv(self, temp_p):
         state = self.debug_realenv.reset(fix_init=True)
         done = False
         stateaction_history = []
-        self.debug_realenv.env.env.set_params(c=temp_c)
+        self.debug_realenv.env.env.set_params(temp_p)
         self.update_belief=False
         self.penalty_flag=False
         while not done:
@@ -297,13 +297,13 @@ class baseVI:
         return np.array(stateaction_history)
 
 
-    def rollout_bamdppolicy_oneepisode_realenv(self, temp_c):
+    def rollout_bamdppolicy_oneepisode_realenv(self, temp_p):
         state = self.debug_realenv.reset(fix_init=True)
         done = False
         sads_array=np.empty((0,self.s_dim*2+self.a_dim))
         belief = self.get_belief()
         stateaction_history = []
-        self.debug_realenv.env.env.set_params(c=temp_c)
+        self.debug_realenv.env.env.set_params(temp_p)
         self.update_belief=True
         self.penalty_flag=False
         while not done:
@@ -440,7 +440,7 @@ class baseVI:
         self.policy_evaluate= True
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            self.debug_realenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_realenv(self.debug_c_list[m])
+            self.debug_realenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_realenv(self.debug_p_list[m])
         print(" ")
 
 
@@ -450,7 +450,7 @@ class baseVI:
         for m in range(len(self.offline_data)):
             print("\n",m,time.time()-tmp_clock)
             tmp_clock = time.time()
-            self.debug_realenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_realenv(self.debug_c_list[m])
+            self.debug_realenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_realenv(self.debug_p_list[m])
         print(" ")
 
 
