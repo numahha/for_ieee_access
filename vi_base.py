@@ -115,7 +115,7 @@ class baseVI:
         print("base load dec.state_dict()['net_phat.0.weight'].sum()",self.dec.state_dict()['net_phat.0.weight'].sum())
         self.update_mulogvar_offlinedata()
         self.set_h_min_tilde()
-        # self.eval_loss_unweighted()
+        self.eval_loss_unweighted()
         self.dec.my_np_compile()
 
 
