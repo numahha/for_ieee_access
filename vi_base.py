@@ -22,7 +22,6 @@ class baseVI:
         self.bamdp_policy = args_init_dict["bamdp_policy"]
         debug_info = args_init_dict["debug_info"]
         self.ckpt_suffix = args_init_dict["ckpt_suffix"]
-        # self.penalty_lam_coef = args_init_dict["penalty_lam_coef"]
 
         train_valid_ratio = 0.2
         self.valid_ave_num=1 # validlossを計算するためのサンプル数
@@ -41,8 +40,8 @@ class baseVI:
         self.action_space       = env.action_space
         self.observation_space       = env.observation_space
         self.h_min_tilde=None
-        self.kappa_tilde= 1# *self.penalty_lam_coef
-        self.c_coeff = 1.
+        self.kappa_tilde= 1
+        self.c_coeff = 0.1
         self.update_belief=True
         self.penalty_flag=True
 

@@ -9,7 +9,7 @@ from sac import SAC
 # from torch.utils.tensorboard import SummaryWriter
 from replay_memory import ReplayMemory
 import random
-from config import cfg_seed, cfg_env, cfg_z_dim, cfg_sac_num_steps, cfg_penalty_lam_coef
+from config import cfg_seed, cfg_env, cfg_z_dim, cfg_sac_num_steps
 import matplotlib.pyplot as plt
 
 
@@ -35,7 +35,6 @@ args = parser.parse_args()
 env_str=cfg_env
 seed = cfg_seed
 args_num_steps = cfg_sac_num_steps
-penalty_lam_coef=cfg_penalty_lam_coef
 
 if cfg_env == "pendulum":
     env_name = "CustomPendulum-v0"
@@ -72,7 +71,6 @@ args_init_dict = {"offline_data": offline_data,
              "debug_info": None,#debug_info,
              "env" : env,
              "ckpt_suffix" : env_str,
-             "penalty_lam_coef" : penalty_lam_coef
              }
 
 vi = vi_iw.iwVI(args_init_dict)

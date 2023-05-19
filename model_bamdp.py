@@ -45,6 +45,7 @@ class Decoder(torch.nn.Module):
     def __init__(self, s_dim, a_dim, z_dim):
         super(Decoder, self).__init__()
         h_dim=cfg_dec_hidden
+        print("dec: h_dim",h_dim)
         self.s_dim=s_dim
         self.saz_dim = s_dim+a_dim+z_dim
         self.activate_fn=torch.nn.ReLU
