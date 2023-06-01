@@ -222,7 +222,7 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         fix_init: bool = False
     ):
         super().reset(seed=seed)
-        self.masspole = 0.1 + 0.2*np.random.rand()        
+        self.masspole = 0.1 + 0.5*np.random.rand()        
         self.length = 0.5 + 0.2*np.random.rand()
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
