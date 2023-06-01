@@ -149,12 +149,6 @@ for i_episode in itertools.count(1):
         avg_reward /= episodes
         agent.save_checkpoint(env_name="custom_"+env_str+"_bamdp_standardvae")
         state_history = np.array(state_history)
-        plt.plot(state_history[:,0], state_history[:,1])
-        plt.plot(state_history[0,0], state_history[0,1],"o")
-
-        plt.savefig("fig_tmp_phase.png")
-        plt.close()
-
 
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
@@ -168,5 +162,23 @@ for i_episode in itertools.count(1):
         plt.legend()
         plt.savefig("fig_policy_optimization_curve_standardvae.png")
         plt.close()
+
+
+        if cfg_env == "pendulum":
+            plt.plot(state_history[:,0], state_history[:,1])
+            plt.plot(state_history[0,0], state_history[0,1],"o")
+            plt.savefig("fig_tmps_angle_pendulum.png")
+            plt.close()
+
+        if cfg_env == "cartpole":
+            plt.plot(state_history[:,0], state_history[:,1])
+            plt.plot(state_history[0,0], state_history[0,1],"o")
+            plt.savefig("fig_tmps_position_cartpole.png")
+            plt.close()
+            plt.plot(state_history[:,2], state_history[:,3])
+            plt.plot(state_history[0,2], state_history[0,3],"o")
+            plt.savefig("fig_tmps_angle_cartpole.png")
+            plt.close()
+
 
 # env.close()
