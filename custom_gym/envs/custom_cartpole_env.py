@@ -103,8 +103,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
         # Angle at which to fail the episode
         # self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        self.theta_threshold_radians = 2 * math.pi
-        self.x_threshold = 2.4
+        self.theta_threshold_radians = 4 * math.pi
+        self.x_threshold = 10.
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
         # is still within bounds.
@@ -224,9 +224,6 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         super().reset(seed=seed)
         self.masspole = 0.1 + 0.1*np.random.rand()        
         self.length = 0.5 + 0.1*np.random.rand()
-        # self.masspole = 0.1 + 0.1*np.random.rand()        
-        # self.length = 0.5 + 0.1*np.random.rand()
-
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
 
@@ -236,8 +233,14 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             # options, -0.05, 0.05  # default low
             options, -0.5, 0.5  # default low
         )  # default high
-        self.state = self.np_random.uniform(low=low, high=high, size=(4,))
-        self.state[2] = np.pi * 2 * (1. - np.random.rand())
+        # self.state = self.np_random.uniform(low=low, high=high, size=(4,))
+        self.state = np.zeros(4)
+        self.state[2] = np.pi
+        if not fix_init:
+            self.state += 0.5*np.random.randn(4)
+            self.state[2] = np.pi
+            self.state[2] += np.pi * 2 * (0.5 - np.random.rand())
+
         # print("init_state", self.state)
         self.steps_beyond_terminated = None
         self.renderer.reset()
