@@ -9,9 +9,9 @@ if cfg_env == "pendulum":
 
 if cfg_env == "cartpole":
     cfg_z_dim = 2
-    cfg_alpha = 0.2
+    cfg_alpha = 0.1
     cfg_sac_num_steps = 200000
-    cfg_dec_hidden=48
+    cfg_dec_hidden=64
 cfg_seed = 0
 cfg_default_lr=5e-4
 cfg_default_early=100
