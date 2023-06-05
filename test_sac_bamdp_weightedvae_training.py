@@ -81,8 +81,7 @@ env = vi
 
 # Agent
 agent = SAC(env.observation_space.shape[0]+z_dim*2, env.action_space)
-
-# agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_", evaluate=False)
+agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_"+env_str+"_bamdp_standardvae_", evaluate=False)
 #Tesnorboard
 
 # Memory
