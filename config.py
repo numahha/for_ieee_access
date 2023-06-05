@@ -13,8 +13,8 @@ if cfg_env == "cartpole":
     cfg_sac_num_steps = 200000
     cfg_dec_hidden=64
 
-cfg_seed = 0
-# cfg_seed = 1
+# cfg_seed = 0
+cfg_seed = 1
 cfg_default_lr=5e-4
 cfg_default_early=100
 
