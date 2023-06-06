@@ -5,7 +5,7 @@ if cfg_env == "pendulum":
     cfg_z_dim = 1
     cfg_alpha = 0.1 # 0.3だと学習が発散?　0.01だと発散しない
     cfg_sac_num_steps = 100000
-    cfg_dec_hidden=32 
+    cfg_dec_hidden=16
 
 if cfg_env == "cartpole":
     cfg_z_dim = 2
