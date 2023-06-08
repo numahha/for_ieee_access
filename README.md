@@ -7,9 +7,21 @@ pip install notebook matplotlib torch
 pip install gym==0.25.1
 ```
 
+# cartpole memo
+cartpoleのkouho2は、seed=1だとだいぶ悪くなる。
+
+
+# pendulum memo
+
+リミッター・初期分布・隠れ層・alphaの組み合わせ
+
+
+* 最後、新しいreal bamdp・割引報酬・同じ初期分布で評価し直す必要がある（後付でOK）
+
 * 隠れ層の数48, 32だとシードを変えていくとstandardvaeでそのまま成功するのがある
   * 隠れ層16→alpha=0.1, 0.2, 0.3だとうまく方策評価できない
   * 初期状態分布を変える
+    * 0.8を0.5に変えたものに対して、隠れ層32は微妙、48も惜しい
   * 各種係数
   * 方策訓練ステップ数
 

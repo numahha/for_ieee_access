@@ -20,7 +20,7 @@ class CustomPendulumEnv(gym.Env):
         self.dt=.1
         self.viewer = None
 
-        high = np.array([4.*np.pi, self.max_speed])
+        high = np.array([6.*np.pi, self.max_speed]) # 8pi is large
         # self.action_space = spaces.Box(low=-self.max_torque, high=self.max_torque, shape=(1,), dtype=np.float32)
         # self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
         self.action_space = spaces.Box(low=-np.float32(self.max_torque), high=np.float32(self.max_torque), shape=(1,))
@@ -64,14 +64,22 @@ class CustomPendulumEnv(gym.Env):
 
 
     def reset(self, fix_init=False):
-        self.state = np.array([np.pi, 0.0])
-        if not fix_init:
-            high = np.array([0.8*np.pi, 1])
-            self.state += self.np_random.uniform(low=-high, high=high)
-        self.last_u = None
+        # 実績あり
+        # high = np.array([0.8*np.pi, 1])
+        # self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
+        # self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
+
+
+        # high = np.array([0.5*np.pi, 1])
+        high = np.array([np.pi, 1])
         self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
         self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
-        # print("c =",self.c)
+
+        self.last_u = None
+        self.state = np.array([np.pi, 0.0])
+        if not fix_init:
+            self.state += self.np_random.uniform(low=-high, high=high)
+
         return self._get_obs().astype(np.float32)
 
 
