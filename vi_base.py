@@ -76,15 +76,30 @@ class baseVI:
             self.debug_realenv_rolloutdata = [None]*len(self.offline_data)
 
 
-    def store_encdec(self):
-        self.enc_store = copy.deepcopy(self.enc)         # q(z|D^train_m)
-        self.dec_store = copy.deepcopy(self.dec)         # p(ds|s,a,z)
+    def tmp_store_encdec(self):
+        self.tmp_enc_store = copy.deepcopy(self.enc)         # q(z|D^train_m)
+        self.tmp_dec_store = copy.deepcopy(self.dec)         # p(ds|s,a,z)
 
 
-    def restore_encdec(self):
-        self.enc = copy.deepcopy(self.enc_store)         # q(z|D^train_m)
-        self.dec = copy.deepcopy(self.dec_store)         # p(ds|s,a,z)
+    def tmp_restore_encdec(self):
+        self.enc = copy.deepcopy(self.tmp_enc_store)         # q(z|D^train_m)
+        self.dec = copy.deepcopy(self.tmp_dec_store)         # p(ds|s,a,z)
         self.dec.my_np_compile()
+
+
+    def tmp_store_penalty(self):
+        self.tmp_penalty_store = copy.deepcopy(self.penalty_model)
+
+    def tmp_restore_penalty(self):
+        self.penalty_model = copy.deepcopy(self.tmp_penalty_store)
+
+
+    def tmp_store_intialbelief(self):
+        self.tmp_intialbelief_store = copy.deepcopy(self.initial_belief)
+
+    def tmp_restore_intialbelief(self):
+        self.initial_belief = copy.deepcopy(self.tmp_intialbelief_store)
+
 
 
     def save(self, ckpt_key="unweighted"):
@@ -466,14 +481,14 @@ class baseVI:
         else:
             return [], []
         loss_fn = self._loss_train_unweighted_vae
-        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
-        self.restore_encdec()
+        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list, self.tmp_store_encdec)
+        self.tmp_restore_encdec()
         self.update_mulogvar_offlinedata()
         self.set_h_min_tilde()
         return ret
 
 
-    def _train(self, num_iter, lr, early_stop_step, loss_fn, param_list):
+    def _train(self, num_iter, lr, early_stop_step, loss_fn, param_list, tmp_store_model=None):
 
         optimizer = torch.optim.Adam(param_list, lr=lr)
 
@@ -501,7 +516,9 @@ class baseVI:
             if best_valid_loss>=valid_loss:
                 best_valid_loss = valid_loss
                 best_valid_iter = i
-                self.store_encdec()
+                if tmp_store_model is not None:
+                    tmp_store_model()
+
 
             if (i-best_valid_iter)>early_stop_step:
                 break
@@ -544,7 +561,6 @@ class baseVI:
         return z
 
 
-    # def _loss_train_unweighted_vae(self, m, flag=False):
     def _loss_train_unweighted_vae(self, m):
         temp_data_m = self.offline_data[m]
         z_mulogvar = self.enc(temp_data_m[:, :(self.sas_dim)])
@@ -594,7 +610,8 @@ class baseVI:
         
         param_list = [self.initial_belief]
         loss_fn = self._loss_train_initial_belief
-        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
+        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list, self.tmp_store_intialbelief)
+        self.tmp_restore_intialbelief()
         return ret
 
 
@@ -645,7 +662,8 @@ class baseVI:
         
         param_list = list(self.penalty_model.parameters())
         loss_fn = self._loss_train_penalty
-        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list)
+        ret = self._train(num_iter, lr, early_stop_step, loss_fn, param_list, self.tmp_store_penalty)
+        self.tmp_restore_penalty()
         return ret
     
 
