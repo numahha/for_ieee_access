@@ -7,11 +7,12 @@ pip install notebook matplotlib torch
 pip install gym==0.25.1
 ```
 
-# cartpole memo
-cartpoleのkouho2は、seed=1だとだいぶ悪くなる。
+# memo
+* 時間がない時には文章整理
+* 時間がある時には開発
 
 
-# pendulum memo
+ベスト反復選択・のような仕組みを実装する必要
 
 リミッター・初期分布・隠れ層・alphaの組み合わせ
 
@@ -28,6 +29,14 @@ cartpoleのkouho2は、seed=1だとだいぶ悪くなる。
 * 押していけば、一応原稿は埋まるくらいにはなった
   * 倒立振子の設定を作る（シード0...5）
   * 変えるかも知れない箇所（隠れ層の数、）
+
+
+
+# cartpole memo
+cartpoleのkouho2は、seed=1だとだいぶ悪くなる。
+
+
+# pendulum memo
 
 
 
