@@ -87,6 +87,17 @@ class baseVI:
         self.dec.my_np_compile()
 
 
+    def tmp2_store_encdec(self):
+        self.tmp2_enc_store = copy.deepcopy(self.enc)         # q(z|D^train_m)
+        self.tmp2_dec_store = copy.deepcopy(self.dec)         # p(ds|s,a,z)
+
+
+    def tmp2_restore_encdec(self):
+        self.enc = copy.deepcopy(self.tmp2_enc_store)         # q(z|D^train_m)
+        self.dec = copy.deepcopy(self.tmp2_dec_store)         # p(ds|s,a,z)
+        self.dec.my_np_compile()
+
+
     def tmp_store_penalty(self):
         self.tmp_penalty_store = copy.deepcopy(self.penalty_model)
 
