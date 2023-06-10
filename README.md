@@ -38,7 +38,7 @@ cartpoleのkouho2は、seed=1だとだいぶ悪くなる。
 
 # pendulum memo
 
-
+一様分布の中心をずらすとかやっても良いかも
 
 ## メモ
 
