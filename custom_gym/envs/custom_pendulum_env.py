@@ -71,9 +71,9 @@ class CustomPendulumEnv(gym.Env):
 
 
         # high = np.array([0.5*np.pi, 1])
-        high = np.array([0.5*np.pi, 3])
+        high = np.array([0.5*np.pi, 5])
         self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
-        self.c = 0.4*np.random.rand() + 0.0# coeff * [0,1)
+        self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
 
         self.last_u = None
         self.state = np.array([np.pi, 0.0])
