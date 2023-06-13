@@ -15,7 +15,7 @@ class CustomPendulumEnv(gym.Env):
     }
 
     def __init__(self):
-        self.max_speed=10
+        self.max_speed=15#10
         self.max_torque=2.
         self.dt=.1
         self.viewer = None
@@ -71,7 +71,7 @@ class CustomPendulumEnv(gym.Env):
 
 
         # high = np.array([0.5*np.pi, 1])
-        high = np.array([0.5*np.pi, 5])
+        high = np.array([0.75*np.pi, 5])
         self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
         self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
 

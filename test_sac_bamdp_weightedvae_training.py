@@ -168,6 +168,8 @@ for i_episode in itertools.count(1):
         test_steps_list.append(total_numsteps)
         plt.plot(train_steps_list, train_epirew_list, label="train")
         plt.plot(test_steps_list, test_epirew_list, label="test")
+        if cfg_env == "pendulum":
+            plt.ylim([-300,0])
         plt.legend()
         plt.savefig("fig_policy_optimization_curve_weightedvae.png")
         plt.close()
