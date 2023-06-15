@@ -20,7 +20,7 @@ parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
-parser.add_argument('--start_steps', type=int, default=4000, metavar='N',
+parser.add_argument('--start_steps', type=int, default=10000, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
 parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
@@ -99,7 +99,8 @@ for i_episode in itertools.count(1):
         else:
             action = agent.select_action(state)  # Sample action from policy
 
-        if len(memory) > args.batch_size:
+        # if len(memory) > args.batch_size:
+        if len(memory) > args.start_steps:     
             # Number of updates per step in environment
             for i in range(args.updates_per_step):
                 # Update parameters of all the networks

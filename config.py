@@ -5,7 +5,7 @@ if cfg_env == "pendulum":
     cfg_z_dim = 1
     cfg_alpha = 0.1
     cfg_sac_num_steps = 100000
-    cfg_dec_hidden=48
+    cfg_dec_hidden=64
 
 if cfg_env == "cartpole":
     cfg_z_dim = 2
