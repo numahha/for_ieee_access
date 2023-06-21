@@ -7,15 +7,17 @@ pip install notebook matplotlib torch
 pip install gym==0.25.1
 ```
 
+iter 3とiter 5をすぐ切り替えられるように整備
+
 # pendulum memo 
 次の条件で一通り探索し切る
 * コスト変更した今で固定
 * alphaも0.1で固定
+* 最適化反復回数増加
 * a:方策評価反復回数増加
-* b:最適化反復回数増加
-* c:1隠れ層は48 or 64で固定
+* b:1隠れ層は48 or 64で固定
 ## 結果
-a3,b2,c64は微妙
+a3,b64は微妙（seed=0はお情けでOKしても良い）
 
 
 
