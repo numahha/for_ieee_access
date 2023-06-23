@@ -20,4 +20,5 @@ cfg_seed = 0
 # cfg_seed = 4
 cfg_default_lr=5e-4
 cfg_default_early=100
+cfg_policy_evaluation_maxiter=5
 
