@@ -20,9 +20,7 @@ class CustomPendulumEnv(gym.Env):
         self.dt=.1
         self.viewer = None
 
-        high = np.array([6.*np.pi, self.max_speed]) # 8pi is large
-        # self.action_space = spaces.Box(low=-self.max_torque, high=self.max_torque, shape=(1,), dtype=np.float32)
-        # self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
+        high = np.array([6.*np.pi, self.max_speed])
         self.action_space = spaces.Box(low=-np.float32(self.max_torque), high=np.float32(self.max_torque), shape=(1,))
         self.observation_space = spaces.Box(low=-np.float32(high), high=np.float32(high))
 
