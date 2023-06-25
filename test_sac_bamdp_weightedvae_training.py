@@ -102,8 +102,8 @@ for i_episode in itertools.count(1):
     # state = env.reset()
     state = env.reset_po()
     while not done:
-        # if args.start_steps > total_numsteps:
-        if 0:
+        if args.start_steps > total_numsteps:
+        # if 0:
             action = env.action_space.sample()  # Sample random action
         else:
             action = agent.select_action(state)  # Sample action from policy
