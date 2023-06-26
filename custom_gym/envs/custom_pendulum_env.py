@@ -55,10 +55,10 @@ class CustomPendulumEnv(gym.Env):
 
         th = o[0]
         thdot = o[1]
-        # costs = angle_normalize(th)**2 + .1*thdot**2 + .001*(u**2) # better?
-        # costs = th**2 + .01*thdot**2 + .001*(u**2) # bad even for real bamdp
-        # costs = (1. - np.exp(-1.*(th**2)))
-        costs = (1. - np.exp(-0.1*(th**2)))
+        # costs = (1. - np.exp(-1.*(th**2))) # hidden=60がダメっぽい
+        costs = (1. - np.exp(-0.5*(th**2)))
+        # costs = (1. - np.exp(-0.2*(th**2)))
+        # costs = (1. - np.exp(-0.1*(th**2)))
         return -np.array([costs]).reshape(1)[0]
 
 
