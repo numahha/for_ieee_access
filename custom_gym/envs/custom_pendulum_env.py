@@ -55,7 +55,7 @@ class CustomPendulumEnv(gym.Env):
 
         th = o[0]
         thdot = o[1]
-        # costs = (1. - np.exp(-1.*(th**2))) # hidden=60がダメっぽい
+        # costs = (1. - np.exp(-1.*(th**2))) 
         costs = (1. - np.exp(-0.5*(th**2)))
         # costs = (1. - np.exp(-0.2*(th**2)))
         # costs = (1. - np.exp(-0.1*(th**2)))
@@ -72,7 +72,7 @@ class CustomPendulumEnv(gym.Env):
         # high = np.array([0.5*np.pi, 1])
         # high = np.array([0.5*np.pi, 5])
         # high = np.array([0.8*np.pi, 1])
-        high = np.array([0.8*np.pi, 3])
+        high = np.array([0.75*np.pi, 5])
         self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
         self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
 

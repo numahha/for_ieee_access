@@ -41,7 +41,7 @@ class baseVI:
         self.observation_space       = env.observation_space
         self.h_min_tilde=None
         self.kappa_tilde= 1
-        self.c_coeff = 1
+        self.c_coeff = 0.1
         self.update_belief=True
         self.penalty_flag=True
 
