@@ -94,8 +94,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.length = 0.5  # actually half the pole's length
         self.force_mag = 10.0
         self.mu_p = 0.0
-        # self.tau = 0.02  # seconds between state updates
-        self.tau = 0.025  # seconds between state updates
+        self.tau = 0.02  # seconds between state updates
+        # self.tau = 0.025  # seconds between state updates
         # self.tau = 0.05  # seconds between state updates
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
@@ -239,7 +239,6 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.state[2] = np.pi
         if not fix_init:
             self.state += 0.5*np.random.randn(4)
-            self.state[2] = np.pi
             self.state[2] += np.pi * 2 * (0.5 - np.random.rand())
 
         # print("init_state", self.state)
