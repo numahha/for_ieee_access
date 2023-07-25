@@ -228,13 +228,13 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
 
-        # Note that if you use custom reset bounds, it may lead to out-of-bound
-        # state/observations.
-        low, high = utils.maybe_parse_reset_bounds(
-            # options, -0.05, 0.05  # default low
-            options, -0.5, 0.5  # default low
-        )  # default high
-        # self.state = self.np_random.uniform(low=low, high=high, size=(4,))
+        # # Note that if you use custom reset bounds, it may lead to out-of-bound
+        # # state/observations.
+        # low, high = utils.maybe_parse_reset_bounds(
+        #     # options, -0.05, 0.05  # default low
+        #     options, -0.5, 0.5  # default low
+        # )  # default high
+        # # self.state = self.np_random.uniform(low=low, high=high, size=(4,))
         self.state = np.zeros(4)
         self.state[2] = np.pi
         if not fix_init:
