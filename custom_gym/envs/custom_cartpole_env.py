@@ -94,9 +94,9 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.length = 0.5  # actually half the pole's length
         self.force_mag = 10.0
         self.mu_p = 0.0
-        # self.tau = 0.02  # seconds between state updates
+        self.tau = 0.02  # seconds between state updates original
         # self.tau = 0.025  # seconds between state updates
-        self.tau = 0.05  # seconds between state updates
+        # self.tau = 0.05  # seconds between state updates
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
         # self.kinematics_integrator = "euler"
@@ -224,7 +224,7 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     ):
         super().reset(seed=seed)
         self.masspole = 0.1 + 0.5*np.random.rand()        
-        self.length = 0.4 + 0.1*np.random.rand()
+        self.length = 0.4 + 0.2*np.random.rand()
         self.total_mass = self.masspole + self.masscart
         self.polemass_length = self.masspole * self.length
 
