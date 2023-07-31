@@ -11,8 +11,9 @@ if cfg_env == "cartpole":
     cfg_z_dim = 2
     cfg_alpha = 0.1
     # cfg_alpha = 0.2
-    cfg_sac_num_steps = 100000
+    # cfg_sac_num_steps = 100000
     # cfg_sac_num_steps = 150000
+    cfg_sac_num_steps = 200000
     cfg_dec_hidden=64
 
 # cfg_seed = 0
