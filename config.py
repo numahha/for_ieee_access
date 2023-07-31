@@ -16,8 +16,8 @@ if cfg_env == "cartpole":
     cfg_dec_hidden=64
 
 # cfg_seed = 0
-cfg_seed = 1
-# cfg_seed = 2
+# cfg_seed = 1
+cfg_seed = 2
 # cfg_seed = 3
 # cfg_seed = 4
 # cfg_seed = 5
