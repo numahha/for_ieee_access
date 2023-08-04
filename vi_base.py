@@ -319,7 +319,7 @@ class baseVI:
             state = 1 * next_state
         self.update_belief=True
         self.penalty_flag=True
-        return np.array(stateaction_history)
+        return np.array(stateaction_history), None
 
 
     def rollout_bamdppolicy_oneepisode_realenv(self, temp_p):
@@ -343,7 +343,7 @@ class baseVI:
             state = 1 * next_state
         self.update_belief=True
         self.penalty_flag=True
-        return np.array(stateaction_history)
+        return np.array(stateaction_history), None
 
     
     def rollout_mdppolicy_oneepisode_simenv(self, z=None, random_stop=True, fix_init=True):
@@ -465,7 +465,7 @@ class baseVI:
         self.policy_evaluate= True
         for m in range(len(self.offline_data)):
             print(m," ", end="")
-            self.debug_realenv_rolloutdata[m] = self.rollout_mdppolicy_oneepisode_realenv(self.debug_p_list[m])
+            self.debug_realenv_rolloutdata[m], _ = self.rollout_mdppolicy_oneepisode_realenv(self.debug_p_list[m])
         print(" ")
 
 
@@ -475,7 +475,7 @@ class baseVI:
         for m in range(len(self.offline_data)):
             print("\n",m,time.time()-tmp_clock)
             tmp_clock = time.time()
-            self.debug_realenv_rolloutdata[m] = self.rollout_bamdppolicy_oneepisode_realenv(self.debug_p_list[m])
+            self.debug_realenv_rolloutdata[m], _ = self.rollout_bamdppolicy_oneepisode_realenv(self.debug_p_list[m])
         print(" ")
 
 

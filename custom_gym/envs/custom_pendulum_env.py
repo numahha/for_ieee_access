@@ -63,23 +63,17 @@ class CustomPendulumEnv(gym.Env):
 
 
     def reset(self, fix_init=False):
-        # 実績あり
-        # high = np.array([0.8*np.pi, 1])
-        # self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
-        # self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
 
+        # high = np.array([0.8*np.pi, 3]) # kouho1 方策評価にとって微妙
+        high = np.array([0.75*np.pi, 5]) # kouho2
 
-        # high = np.array([0.5*np.pi, 1])
-        # high = np.array([0.5*np.pi, 5])
-        # high = np.array([0.8*np.pi, 1])
-        high = np.array([0.75*np.pi, 5])
         self.m = 0.5 + 0*0.*np.random.rand() # coeff * [0,1)
         self.c = 0.3*np.random.rand() + 0.0# coeff * [0,1)
 
         self.last_u = None
         self.state = np.array([np.pi, 0.0])
         if not fix_init:
-            self.state += self.np_random.uniform(low=-high, high=high) #- np.array([np.pi, 0.0])
+            self.state += self.np_random.uniform(low=-high, high=high)
 
         return self._get_obs().astype(np.float32)
 
