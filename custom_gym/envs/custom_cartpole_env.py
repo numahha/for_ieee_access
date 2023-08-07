@@ -103,7 +103,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 8 * math.pi
-        self.x_threshold = 40.
+        self.x_threshold = 20.
+        # self.x_threshold = 40.
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
         # is still within bounds.
@@ -199,8 +200,8 @@ class CustomCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
 
     def rew_fn(self, state, action):
-        # costs = (1. - np.exp(-0.5*(state[2]**2)))
-        costs = (1. - np.exp(-0.5*(state[2]**2))) + (1. - np.exp(-0.1*(state[0]**2)))
+        costs = (1. - np.exp(-0.5*(state[2]**2)))
+        # costs = (1. - np.exp(-0.5*(state[2]**2))) + (1. - np.exp(-0.1*(state[0]**2)))
         return -np.array([costs]).reshape(1)[0]
 
     def get_params(self):
