@@ -28,7 +28,7 @@ class baseVI:
 
         self.nu = 1e0 # KLDによる正則化の重み
 
-        self.gamma = 0.98
+        self.gamma = 0.99
         self.s_dim = s_dim
         self.a_dim = a_dim
         self.sa_dim = s_dim + a_dim

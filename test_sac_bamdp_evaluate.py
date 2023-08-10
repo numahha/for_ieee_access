@@ -73,6 +73,7 @@ if 0:
     agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_"+env_str+"_bamdp_weightedvae_", evaluate=True)
     # agent.load_checkpoint(ckpt_path="checkpoints/sac_checkpoint_custom_pendulum_bamdp_realbamdpdebug_", evaluate=True)
     vi = vi_iw.iwVI(args_init_dict)
+    vi.load(ckpt_key="policy_optimization_iter1")
     
 
 
@@ -84,9 +85,11 @@ total_numsteps = 0
 updates = 0
 
 avg_reward = 0.
-episodes = 5
+episodes = 100
+gamma = vi.gamma
 for _  in range(episodes):
     state = env.reset(fix_init=True)
+    # state = env.reset(fix_init=False)
     belief = vi.get_belief()
     episode_reward = 0
     done = False
@@ -101,7 +104,7 @@ for _  in range(episodes):
         sads_array = np.vstack([sads_array, 
                                 np.hstack([state, action, next_state-state])])
         belief_array = np.vstack([belief_array,belief.numpy()])
-        episode_reward += reward
+        episode_reward += reward*(gamma**(len(rew_list)))
         rew_list.append(reward)
 
         state = next_state
@@ -123,7 +126,7 @@ for _  in range(episodes):
 
     print("\nenv.get_params()",env.get_params())
     # debug plot per episode
-    if 1:
+    if 0:
         print("episode_reward",episode_reward)
         plt.plot(sads_array[0,0],sads_array[0,1],"o")
         plt.plot(sads_array[:,0],sads_array[:,1])
@@ -137,6 +140,7 @@ for _  in range(episodes):
         # plt.xlabel("timestamp")
         # plt.show()
     avg_reward += episode_reward
+    print("episode_reward",episode_reward)
 avg_reward /= episodes
 
 print("----------------------------------------")
